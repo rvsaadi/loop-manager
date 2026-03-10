@@ -1,7 +1,6 @@
 // Loop Score Engine v11.4 - Fully continuous demand model
 // Demand is ALWAYS monotonically decreasing with price. No steps, no jumps.
 import { AUX } from "../data/aux.js";
-import { ALL_CATS } from "../data/constants.js";
 
 // Category reference prices (median of typical range for each category)
 const CAT_PREF = {
