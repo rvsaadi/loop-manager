@@ -247,7 +247,7 @@ export default function LoopApp() {
                   <KPICard label="SKUs" value={purchaseLog.length} color="#6C5CE7" emoji="📦" />
                   <KPICard label="Categorias" value={funnelData.n_cats} color="#00b894" emoji="🏷️" sub={"de 13"} />
                   <KPICard label="Investimento" value={fmt(purchaseLog.reduce((a,p) => a + (Number(p.custo)||0)*(Number(p.qtd)||0), 0))} color="#e17055" emoji="💳" />
-                  <KPICard label="PM" value={"R$"+funnelData.pm.toFixed(0)} color="#0984e3" emoji="🏷️" sub={(funnelData.pct_sub20*100).toFixed(0)+"% ≤R$20"} />
+                  <KPICard label="PM" value={"R$"+(funnelData.pm||0).toFixed(0)} color="#0984e3" emoji="🏷️" sub={((funnelData.pct_sub20||0)*100).toFixed(0)+"% ≤R$20"} />
                   <KPICard label="Score Méd" value={(purchaseLog.reduce((a,p) => a+(Number(p.score)||0), 0)/purchaseLog.length).toFixed(2)} color="#E84393" emoji="⭐" />
                 </div>
                 {(() => { const filled = idealSlots.filter(s => s.matched).length; const total = idealSlots.filter(s => !s.isNew).length; const pct = total > 0 ? (filled/total*100).toFixed(0) : 0;
@@ -279,7 +279,7 @@ export default function LoopApp() {
                 {[{l:"Taxa Parada",v:funnelData.sr+"%",c:"#0984e3",bg:"#f0f7ff",s:"Variedade: "+(funnelData.sr_factors.variety||1).toFixed(3)+"x"},
                   {l:"Conversão",v:funnelData.conv+"%",c:"#00b894",bg:"#f0fdf4",s:"Ampl: "+(funnelData.conv_factors.f_breadth||1).toFixed(3)+"x"},
                   {l:"P/A",v:funnelData.pa,c:"#E84393",bg:"#fef3f2",s:"Preço: "+(funnelData.pa_factors.f_price||1).toFixed(3)+"x"},
-                  {l:"Compr/dia",v:funnelData.compradores_dia,c:"#6C5CE7",bg:"#f5f0ff",s:funnelData.passantes_dia?.toLocaleString()+" pass"},
+                  {l:"Compr/dia",v:funnelData.compradores_dia,c:"#6C5CE7",bg:"#f5f0ff",s:(funnelData.passantes_dia||0).toLocaleString()+" pass"},
                   {l:"Ticket",v:"R$"+funnelData.ticket,c:"#f39c12",bg:"#fff8e1",s:funnelData.pa+" × R$"+funnelData.pm},
                   {l:"Receita/mês",v:fmt(funnelData.receita_mes),c:"#2e7d32",bg:"#e8f5e9",s:funnelData.compradores_dia+"×R$"+funnelData.ticket+"×30"}
                 ].map(f => (<div key={f.l} style={{background:f.bg, borderRadius:12, padding:12, textAlign:"center"}}>
@@ -793,7 +793,7 @@ export default function LoopApp() {
                     return (<div key={r} style={{flex:1, textAlign:"center"}}><div style={{fontSize:14, fontWeight:800}}>{n}</div><div style={{height:h, background:"linear-gradient(to top, #6C5CE7, #a29bfe)", borderRadius:"6px 6px 0 0"}} /><div style={{fontSize:10, color:"#888", marginTop:4}}>{r}</div></div>);
                   })}
                 </div>
-                <div style={{marginTop:12, fontSize:12, color:"#888"}}>💡 Ideal: 60-70% ≤R$20. Atual: {(funnelData.pct_sub20*100).toFixed(0)}%{funnelData.pct_sub20<0.6?<span style={{color:"#e17055", fontWeight:700}}> — adicione itens baratos</span>:<span style={{color:"#00b894", fontWeight:700}}> — na faixa ideal!</span>}</div>
+                <div style={{marginTop:12, fontSize:12, color:"#888"}}>💡 Ideal: 60-70% ≤R$20. Atual: {((funnelData.pct_sub20||0)*100).toFixed(0)}%{funnelData.pct_sub20<0.6?<span style={{color:"#e17055", fontWeight:700}}> — adicione itens baratos</span>:<span style={{color:"#00b894", fontWeight:700}}> — na faixa ideal!</span>}</div>
               </div>
               {/* FUNNEL IMPACT */}
               <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>

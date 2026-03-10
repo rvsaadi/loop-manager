@@ -33,14 +33,15 @@ export function calculateFunnel(approvedProducts, overrides = {}) {
   const cfg = { ...DEFAULTS, ...overrides };
   
   if (!approvedProducts || approvedProducts.length === 0) {
+    const comp = Math.round(cfg.passantes_dia * cfg.sr_base/100 * cfg.conv_base/100);
     return {
       n_skus: 0, n_cats: 0, pm: 0, pct_sub20: 0,
-      sr: cfg.sr_base, conv: cfg.conv_base, pa: cfg.pa_base,
-      sr_factors: {}, conv_factors: {}, pa_factors: {},
-      compradores_dia: Math.round(cfg.passantes_dia * cfg.sr_base/100 * cfg.conv_base/100),
-      demanda_mes: 0, receita_mes: 0,
-      passantes_dia: cfg.passantes_dia,
-      cfg
+      sr: Math.round(cfg.sr_base * 100) / 100,
+      conv: Math.round(cfg.conv_base * 100) / 100,
+      pa: Math.round(cfg.pa_base * 100) / 100,
+      sr_factors: { variety: 1 }, conv_factors: { f_breadth: 1, f_access: 1 }, pa_factors: { f_price: 1, f_crosscat: 1 },
+      compradores_dia: comp, demanda_mes: 0, receita_mes: 0,
+      ticket: 0, passantes_dia: cfg.passantes_dia, cfg
     };
   }
 
