@@ -234,97 +234,86 @@ export default function LoopApp() {
         {/* DASHBOARD */}
         {tab === "dashboard" && (
           <div>
+            {/* APPROVED SORTIMENT */}
+            <div style={{background:"white", borderRadius:16, padding:20, marginBottom:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", border:"2px solid #6C5CE730"}}>
+              <div style={{fontSize:18, fontWeight:800, marginBottom:16}}>🛒 Sortimento Aprovado ({purchaseLog.length} SKUs)</div>
+              {purchaseLog.length === 0 ? (
+                <div style={{textAlign:"center", padding:20, color:"#aaa"}}>
+                  <div style={{fontSize:36, marginBottom:8}}>📸</div>Nenhum produto aprovado. Use 🤖 Avaliar Produto.
+                  <div style={{marginTop:12}}><button onClick={() => setTab("avaliar")} style={{padding:"10px 24px", borderRadius:10, border:"none", background:"linear-gradient(135deg, #6C5CE7, #E84393)", color:"white", fontWeight:700, cursor:"pointer"}}>Avaliar Produto</button></div>
+                </div>
+              ) : (<div>
+                <div style={{display:"flex", flexWrap:"wrap", gap:10, marginBottom:16}}>
+                  <KPICard label="SKUs" value={purchaseLog.length} color="#6C5CE7" emoji="📦" />
+                  <KPICard label="Categorias" value={funnelData.n_cats} color="#00b894" emoji="🏷️" sub={"de 13"} />
+                  <KPICard label="Investimento" value={fmt(purchaseLog.reduce((a,p) => a + (Number(p.custo)||0)*(Number(p.qtd)||0), 0))} color="#e17055" emoji="💳" />
+                  <KPICard label="PM" value={"R$"+funnelData.pm.toFixed(0)} color="#0984e3" emoji="🏷️" sub={(funnelData.pct_sub20*100).toFixed(0)+"% ≤R$20"} />
+                  <KPICard label="Score Méd" value={(purchaseLog.reduce((a,p) => a+(Number(p.score)||0), 0)/purchaseLog.length).toFixed(2)} color="#E84393" emoji="⭐" />
+                </div>
+                {(() => { const filled = idealSlots.filter(s => s.matched).length; const total = idealSlots.filter(s => !s.isNew).length; const pct = total > 0 ? (filled/total*100).toFixed(0) : 0;
+                  return (<div style={{background:"#f8f9fa", borderRadius:12, padding:12, marginBottom:8}}>
+                    <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+                      <span style={{fontSize:13, fontWeight:700}}>🎯 Progresso Sortimento Ideal</span>
+                      <span style={{fontSize:13, fontWeight:700, color:"#6C5CE7"}}>{filled}/{total} ({pct}%)</span></div>
+                    <div style={{height:8, background:"#eee", borderRadius:4, overflow:"hidden"}}>
+                      <div style={{width:pct+"%", height:"100%", background:"linear-gradient(90deg, #6C5CE7, #00b894)", borderRadius:4}} /></div>
+                  </div>);
+                })()}
+              </div>)}
+            </div>
+
+            {/* DYNAMIC FUNNEL */}
+            <div style={{background:"white", borderRadius:16, padding:20, marginBottom:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", border:"2px solid #0984e330"}}>
+              <div style={{fontSize:18, fontWeight:800, marginBottom:4}}>📊 Funil Dinâmico</div>
+              <div style={{fontSize:12, color:"#888", marginBottom:16}}>KPIs calculados em tempo real a partir do sortimento aprovado.</div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:12, marginBottom:16}}>
+                {[{k:"passantes_dia",l:"Passantes/dia",d:FUNNEL_DEFAULTS.passantes_dia,h:"7.667 = 10% de 2,3M/mês",s:1},
+                  {k:"sr_base",l:"Taxa Parada Base (%)",d:FUNNEL_DEFAULTS.sr_base,h:"3% benchmark Tiger/Miniso",s:0.1},
+                  {k:"conv_base",l:"Conversão Base (%)",d:FUNNEL_DEFAULTS.conv_base,h:"20% de quem para, compra",s:0.1},
+                  {k:"pa_base",l:"P/A Base",d:FUNNEL_DEFAULTS.pa_base,h:"2.10 conservador (Tiger 4-6)",s:0.05}
+                ].map(f => (<div key={f.k}><label style={{fontSize:11, fontWeight:600, color:"#888", display:"block", marginBottom:3}}>{f.l}</label>
+                  <input type="number" step={f.s} value={funnelOverrides[f.k] ?? f.d} onChange={e => setFunnelOverrides(p => ({...p, [f.k]: Number(e.target.value)}))} style={{width:"100%", padding:"8px 10px", borderRadius:8, border:"2px solid #0984e340", fontSize:14, fontFamily:"inherit"}} />
+                  <div style={{fontSize:10, color:"#0984e3", marginTop:2}}>💡 {f.h}</div></div>))}
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:10, marginBottom:12}}>
+                {[{l:"Taxa Parada",v:funnelData.sr+"%",c:"#0984e3",bg:"#f0f7ff",s:"Variedade: "+(funnelData.sr_factors.variety||1).toFixed(3)+"x"},
+                  {l:"Conversão",v:funnelData.conv+"%",c:"#00b894",bg:"#f0fdf4",s:"Ampl: "+(funnelData.conv_factors.f_breadth||1).toFixed(3)+"x"},
+                  {l:"P/A",v:funnelData.pa,c:"#E84393",bg:"#fef3f2",s:"Preço: "+(funnelData.pa_factors.f_price||1).toFixed(3)+"x"},
+                  {l:"Compr/dia",v:funnelData.compradores_dia,c:"#6C5CE7",bg:"#f5f0ff",s:funnelData.passantes_dia?.toLocaleString()+" pass"},
+                  {l:"Ticket",v:"R$"+funnelData.ticket,c:"#f39c12",bg:"#fff8e1",s:funnelData.pa+" × R$"+funnelData.pm},
+                  {l:"Receita/mês",v:fmt(funnelData.receita_mes),c:"#2e7d32",bg:"#e8f5e9",s:funnelData.compradores_dia+"×R$"+funnelData.ticket+"×30"}
+                ].map(f => (<div key={f.l} style={{background:f.bg, borderRadius:12, padding:12, textAlign:"center"}}>
+                  <div style={{fontSize:11, color:"#888", fontWeight:600}}>{f.l}</div>
+                  <div style={{fontSize:22, fontWeight:800, color:f.c}}>{f.v}</div>
+                  <div style={{fontSize:10, color:"#888"}}>{f.s}</div></div>))}
+              </div>
+              <button onClick={() => setFunnelOverrides({})} style={{fontSize:11, color:"#888", background:"none", border:"1px solid #ddd", borderRadius:6, padding:"4px 10px", cursor:"pointer"}}>↩ Resetar premissas</button>
+            </div>
+
+            {/* BASE CATALOG */}
+            <div style={{fontSize:14, fontWeight:700, color:"#888", marginBottom:12}}>📦 Catálogo Base ({skus.length} SKUs v6 — referência)</div>
             <div style={{display:"flex", flexWrap:"wrap", gap:12, marginBottom:24}}>
-              <KPICard label="Receita/mês" value={fmt(totals.receita)} color="#0984e3" emoji="💰" sub={`${AUX.painel.comp_dia} compr/dia`} />
-              <KPICard label="Lucro/mês" value={fmt(totals.lucro)} color="#00b894" emoji="📈" sub={`Margem ${totals.margem.toFixed(1)}%`} />
-              <KPICard label="SKUs" value={totals.skus} color="#6C5CE7" emoji="📦" sub={`${catStats.length} categorias`} />
-              <KPICard label="P/A" value={AUX.painel.pa.toFixed(2)} color="#E84393" emoji="🛒" sub={`${AUX.painel.dem_total} pcs/mês`} />
-              <KPICard label="Taxa Parada" value={`${AUX.painel.sr}%`} color="#fdcb6e" emoji="👀" sub={`Conv ${AUX.painel.conv}%`} />
+              <KPICard label="Receita/mês" value={fmt(totals.receita)} color="#0984e3" emoji="💰" sub={AUX.painel.comp_dia+" compr/dia"} />
+              <KPICard label="Lucro/mês" value={fmt(totals.lucro)} color="#00b894" emoji="📈" sub={"Margem "+totals.margem.toFixed(1)+"%"} />
+              <KPICard label="SKUs" value={totals.skus} color="#6C5CE7" emoji="📦" sub={catStats.length+" categorias"} />
             </div>
-
             <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:20}}>
-              <div style={{fontSize:16, fontWeight:700, marginBottom:16}}>Recomendações do Sortimento</div>
-              <div style={{display:"flex", gap:12, flexWrap:"wrap"}}>
-                {[
-                  {k:"AMPLIAR",v:totals.ampliar,c:"#00b894",d:"Score ≥ 3.5"},
-                  {k:"MANTER",v:totals.manter,c:"#0984e3",d:"Score 2.5-3.5"},
-                  {k:"REVISAR",v:totals.revisar,c:"#fdcb6e",d:"Score 1.5-2.5"},
-                  {k:"CORTAR",v:totals.cortar,c:"#d63031",d:"Score < 1.5"},
-                ].map(r => (
-                  <div key={r.k} onClick={() => {setTab("catalogo"); setRecFilter(r.k);}}
-                    style={{flex:"1 1 140px", padding:16, borderRadius:14, background:`${r.c}15`,
-                    border:`2px solid ${r.c}30`, cursor:"pointer", textAlign:"center"}}>
-                    <div style={{fontSize:32, fontWeight:900, color:r.c}}>{r.v}</div>
-                    <div style={{fontSize:13, fontWeight:700, color:r.c}}>{r.k}</div>
-                    <div style={{fontSize:11, color:"#888"}}>{r.d}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:20}}>
-              <div style={{fontSize:16, fontWeight:700, marginBottom:16}}>📊 Performance por Categoria</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%", borderCollapse:"collapse", fontSize:12}}>
-                  <thead><tr style={{borderBottom:"2px solid #eee"}}>
-                    {["Categoria","SKUs","Estoque (PV)","Venda Est./mês","Lucro/mês","Cobertura","Score"].map(h =>
-                      <th key={h} style={{textAlign:h==="Categoria"?"left":"right", padding:"8px 6px", color:"#888", fontWeight:700, fontSize:11, whiteSpace:"nowrap"}}>{h}</th>
-                    )}
-                  </tr></thead>
-                  <tbody>
-                    {catStats.map(c => {
-                      const avgS = c.scores.reduce((a,b)=>a+b,0)/c.scores.length;
-                      const cob = c.cobertura;
-                      return (
-                        <tr key={c.name} style={{borderBottom:"1px solid #f5f5f5", cursor:"pointer"}}
-                          onClick={() => {setTab("catalogo"); setCatFilter(c.name);}}>
-                          <td style={{padding:"10px 6px", fontWeight:600, whiteSpace:"nowrap"}}>
-                            {CAT_EMOJI[c.name]} {c.name}
-                          </td>
-                          <td style={{textAlign:"right", padding:"8px 6px"}}>{c.count}</td>
-                          <td style={{textAlign:"right", padding:"8px 6px", color:"#6C5CE7", fontWeight:600}}>{fmt(c.estoqueVenda)}</td>
-                          <td style={{textAlign:"right", padding:"8px 6px", color:"#0984e3", fontWeight:600}}>{fmt(c.receita)}</td>
-                          <td style={{textAlign:"right", padding:"8px 6px", color:"#00b894", fontWeight:600}}>{fmt(c.lucro)}</td>
-                          <td style={{textAlign:"right", padding:"8px 6px"}}>
-                            <span style={{background:(cob>6?"#d6303120":cob>3?"#fdcb6e20":"#00b89420"), color:cob>6?"#d63031":cob>3?"#fdcb6e":"#00b894", padding:"2px 8px", borderRadius:8, fontWeight:700, fontSize:11}}>
-                              {cob.toFixed(1)}m
-                            </span>
-                          </td>
-                          <td style={{textAlign:"right", padding:"8px 6px", fontWeight:700,
-                            color: avgS>=4?"#00b894":avgS>=3?"#0984e3":"#fdcb6e"
-                          }}>⭐{avgS.toFixed(1)}</td>
-                        </tr>
-                      );
-                    })}
-                    <tr style={{borderTop:"2px solid #333", fontWeight:800, fontSize:12}}>
-                      <td style={{padding:"10px 6px"}}>TOTAL</td>
-                      <td style={{textAlign:"right", padding:"8px 6px"}}>{skus.length}</td>
-                      <td style={{textAlign:"right", padding:"8px 6px", color:"#6C5CE7"}}>{fmt(catStats.reduce((a,c)=>a+c.estoqueVenda,0))}</td>
-                      <td style={{textAlign:"right", padding:"8px 6px", color:"#0984e3"}}>{fmt(catStats.reduce((a,c)=>a+c.receita,0))}</td>
-                      <td style={{textAlign:"right", padding:"8px 6px", color:"#00b894"}}>{fmt(catStats.reduce((a,c)=>a+c.lucro,0))}</td>
-                      <td></td><td></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-              <div style={{fontSize:16, fontWeight:700, marginBottom:16}}>Distribuição de Preço</div>
-              <div style={{display:"flex", gap:8, alignItems:"flex-end", height:140}}>
-                {Object.entries(priceBuckets).map(([k,v]) => {
-                  const maxV = Math.max(...Object.values(priceBuckets));
-                  return (
-                    <div key={k} onClick={() => {setTab("catalogo"); setPriceFilter(priceFilter===k?null:k);}}
-                      style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", cursor:"pointer", gap:4}}>
-                      <span style={{fontSize:12, fontWeight:700}}>{v}</span>
-                      <div style={{width:"100%", borderRadius:"8px 8px 0 0", height:`${v/maxV*100}px`, minHeight:8,
-                        background:priceFilter===k?"#6C5CE7":"linear-gradient(180deg, #6C5CE740, #6C5CE720)"}} />
-                      <span style={{fontSize:10, color:"#888", fontWeight:600}}>{priceLabels[k]}</span>
-                    </div>
-                  );
-                })}
-              </div>
+              <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>📊 Performance por Categoria (base)</div>
+              <div style={{overflowX:"auto"}}><table style={{width:"100%", borderCollapse:"collapse", fontSize:13}}>
+                <thead><tr style={{borderBottom:"2px solid #eee"}}>
+                  <th style={{textAlign:"left", padding:"8px 12px", color:"#888"}}>Categoria</th>
+                  <th style={{textAlign:"center", padding:"8px 6px", color:"#888"}}>SKUs</th>
+                  <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Receita</th>
+                  <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Score</th>
+                </tr></thead><tbody>
+                  {catStats.sort((a,b) => b.receita - a.receita).map(cat => (
+                    <tr key={cat.cat} style={{borderBottom:"1px solid #f5f5f5", cursor:"pointer"}} onClick={() => { setCatFilter(cat.cat); setTab("catalogo"); }}>
+                      <td style={{padding:"10px 12px", fontWeight:600}}>{CAT_EMOJI[cat.cat]} {cat.cat}</td>
+                      <td style={{textAlign:"center"}}>{cat.count}</td>
+                      <td style={{textAlign:"right", color:"#0984e3"}}>{fmt(cat.receita)}</td>
+                      <td style={{textAlign:"right"}}>{cat.score.toFixed(2)}</td>
+                    </tr>))}
+                </tbody></table></div>
             </div>
           </div>
         )}
@@ -765,227 +754,70 @@ export default function LoopApp() {
 
         {/* INSIGHTS */}
         {tab === "insights" && (() => {
-          const totRec = catStats.reduce((a,c)=>a+c.receita,0);
-          const totLuc = catStats.reduce((a,c)=>a+c.lucro,0);
-          const avgMg = skus.length ? skus.reduce((a,s)=>a+s.mg,0)/skus.length : 0;
-          const avgSc = skus.length ? skus.reduce((a,s)=>a+s.sc,0)/skus.length : 0;
-          const top5 = [...skus].sort((a,b)=>b.lu-a.lu).slice(0,5);
-          const bottom5 = [...skus].sort((a,b)=>a.sc-b.sc).slice(0,5);
-          const highCov = catStats.filter(c=>c.cobertura>4).sort((a,b)=>b.cobertura-a.cobertura);
-          const lowCov = catStats.filter(c=>c.cobertura<1.5 && c.demanda>0);
-          const sub20 = skus.filter(s=>s.pv<=20).length;
-          const pctSub20 = (sub20/skus.length*100);
-          const ampliarSkus = skus.filter(s=>s.rc==="AMPLIAR");
-          const cortarSkus = skus.filter(s=>s.rc==="CORTAR");
-          const lowMgAmpliar = skus.filter(s=>s.rc==="AMPLIAR"&&s.mg<40);
-          const expansionCats = catStats.filter(c=>c.count<=4);
-          const topPiCats = [...catStats].sort((a,b)=>{
-            const piA = a.lucro/(a.count||1); const piB = b.lucro/(b.count||1);
-            return piB-piA;
-          }).slice(0,3);
-          
-          const sections = [
-            {title:"🎯 Diagnóstico do Sortimento Atual", color:"#0984e3", items:[
-              `Sortimento com ${skus.length} SKUs em ${catStats.length} categorias. Score médio ${avgSc.toFixed(2)}/5.00. ${ampliarSkus.length} SKUs AMPLIAR (${(ampliarSkus.length/skus.length*100).toFixed(0)}%), ${cortarSkus.length} CORTAR (${(cortarSkus.length/skus.length*100).toFixed(0)}%).`,
-              `Receita estimada ${fmt(totRec)}/mês, lucro ${fmt(totLuc)}/mês, margem média ${avgMg.toFixed(0)}%.`,
-              `${pctSub20.toFixed(0)}% dos SKUs custam ≤R$20. Meta Flying Tiger: 65-70%. ${pctSub20>=60?"✅ Dentro da faixa ideal para impulso.":"⚠️ Considere aumentar SKUs ≤R$20 para maximizar P/A."}`,
-              cortarSkus.length>0 ? `🔴 ${cortarSkus.length} SKUs para CORTAR consomem espaço e capital. Top candidatos a remoção: ${cortarSkus.slice(0,3).map(s=>s.n.substring(0,25)).join(", ")}. Liberar facings para categorias com melhor Πi.` : "✅ Nenhum SKU para corte — sortimento enxuto.",
-              lowMgAmpliar.length>0 ? `⚠️ ${lowMgAmpliar.length} SKUs com AMPLIAR mas margem <40%: ${lowMgAmpliar.map(s=>s.n.substring(0,20)+"("+s.mg.toFixed(0)+"%)").join(", ")}. Renegociar custo ou subir PV.` : "",
-            ]},
-            {title:"📈 Ações para Aumentar Vendas & GMROI", color:"#00b894", items:[
-              `EXPANDIR categorias com melhor lucro/SKU: ${topPiCats.map(c=>c.name+" ("+fmt(c.lucro/c.count)+"/SKU)").join(", ")}. Cada SKU novo nessas categorias gera retorno acima da média.`,
-              `GIRAR ESTOQUE: ${highCov.length} categorias com cobertura >4 meses: ${highCov.map(c=>c.name+" ("+c.cobertura.toFixed(1)+"m)").join(", ")}. Liquidar excesso com 20-30% off e reinvestir em alto giro.`,
-              lowCov.length>0 ? `⚠️ Risco de ruptura: ${lowCov.map(c=>c.name+" ("+c.cobertura.toFixed(1)+"m)").join(", ")}. Reordenar urgente — ruptura de estoque em SKU AMPLIAR é perda direta de receita.` : "",
-              `GMROI médio do sortimento: calcule CMV mensal e divida o lucro bruto. Meta: ≥2,0x. SKUs com GMROI <1,0x estão destruindo valor — reduzir estoque ou eliminar.`,
-              `Rotação Flying Tiger: trocar 10-15% do sortimento a cada 2 meses. Clientes recorrentes (funcionários do complexo Nova América) precisam perceber novidade. Pipeline: ter sempre 5-10 amostras de novos SKUs em avaliação.`,
-            ]},
-            {title:"👀 Aumentar Taxa de Parada & Conversão", color:"#E84393", items:[
-              `TAXA DE PARADA (meta ≥3%): A parada é o primeiro gargalo do funil. De cada 1% adicional de parada → ~15 compradores/dia extras → ~R$500/dia de receita.`,
-              `Tática #1 — AROMA: Posicionar Home Fragrance e Food & Candy na borda do quiosque voltada para o corredor. Sachês abertos e chocolates à mostra perfumam e atraem. Efeito Cacau Show: aroma converte passante em curioso.`,
-              `Tática #2 — COR: Agrupar produtos por paleta de cor (não por categoria). Parede rosa = beauty + papelaria rosa + brinquedo rosa. Efeito Flying Tiger: arco-íris visual para no corredor.`,
-              `Tática #3 — DEMONSTRAÇÃO ATIVA: Impressora térmica imprimindo fotos de passantes (grátis). Vendedor fora do quiosque oferecendo amostra de chocolate. Criar evento, não esperar o cliente.`,
-              `CONVERSÃO (meta ≥20%): De quem para, 20% precisa comprar. Cada 5% a mais de conversão → R$7-8k/mês extras.`,
-              `Tática: "Zona R$10" visível (bin na entrada com 30+ SKUs a R$10). Remove barreira psicológica de preço. Daiso faz isso com 100% do sortimento. Loop pode fazer com 25-30%.`,
-              `Tática: Sinalização clara de preço. Etiquetas grandes e coloridas. Cliente não pode ter dúvida do preço — dúvida = desistência em impulso.`,
-            ]},
-            {title:"🏪 Visual Merchandising (DNA Flying Tiger)", color:"#6C5CE7", items:[
-              `LAYOUT CIRCUITO: Mesmo em 9m², criar fluxo direcional. Entrada pela lateral com "Zona R$10" → parede de papelaria/beauty → gôndola central com brinquedos/acessórios → caixa com Food & Candy e Party. Cliente vê tudo antes de pagar.`,
-              `ZONAS DE COR: Não organizar por categoria. Organizar por cor/tema. "Canto rosa" (beauty + papelaria feminina), "Canto fun" (brinquedos + party), "Canto zen" (home fragrance + velas). Efeito Instagram: cliente fotografa.`,
-              `VERTICALIDADE: Produtos mais baratos (R$5-15) na altura dos olhos e das mãos. Produtos caros/âncora (luminárias, kits) acima da linha dos olhos — são vitrine, não impulso. Crianças: brinquedos e Food & Candy na altura dos olhos delas (~1m).`,
-              `CROSS-MERCHANDISING: Não separar categorias. Colocar borracha R$5 ao lado do caderno R$20. Lip balm R$10 ao lado do espelho R$12. Sachê R$10 ao lado da vela R$50. O cliente que pega 1 vê o complemento imediato.`,
-              `CHECKOUT ZONE: Últimos 50cm antes do caixa = Food & Candy + mini acessórios R$5-10. Impulso final. "Ah, vou levar esse chocolate também." Cacau Show faz 30%+ da venda na área de checkout.`,
-              `RENOVAÇÃO: Trocar posição dos displays a cada 2 semanas. O cérebro ignora o familiar. Mover papelaria da parede A para parede B custa zero e gera percepção de novidade.`,
-            ]},
-            {title:"🛒 Aumentar P/A e Ticket Médio", color:"#fdcb6e", items:[
-              `P/A ATUAL: ${AUX.painel.pa} peças/compra. META: 2,5-3,0. Cada +0,1 no P/A → ~R$1.500/mês a mais. O P/A é o multiplicador mais poderoso do funil depois da conversão.`,
-              `KITS PRONTOS: "Kit Aniversário" (vela+topo+faixa+balões = R$65), "Kit Autoestima" (lip balm+sheet mask+sachê+espelho = R$55), "Kit Volta às Aulas" (canetas+borracha+washi+stickers = R$40). Kits elevam ticket 40-60%.`,
-              `SUGESTÃO ATIVA: Treinar vendedor para cada venda sugerir 1 item complementar. "Levou a borracha? Esses stickers combinam, R$8." "Presente? Inclui um sachê — fica lindo e perfumado, R$10." Cacau Show: upsell treinado em cada transação.`,
-              `BUNDLING DE PREÇO: "Leve 3 por R$25" em itens de R$10. "2º item com 20% off em beauty." Incentiva a 2ª e 3ª peça. Action e Daiso usam bundling agressivamente.`,
-              `PM PONDERADO: ${fmt(AUX.painel.pm_pond)}. Para subir o ticket sem subir preço: focar cross-sell de categorias com PM mais alto (Home Fragrance R$44, Beauty R$33) junto com itens de entrada.`,
-              `PROGRAMA DE FIDELIDADE: Cartão físico "Compre 10, ganhe 1". Custo: R$0,20/cartão. Efeito: cliente que tem 7 carimbos compra 3 itens que não compraria para completar. ROI comprovado em varejo de impulso.`,
-            ]},
-            {title:"⚡ Eficiência Operacional", color:"#00cec9", items:[
-              `REPOSIÇÃO INTELIGENTE: SKUs AMPLIAR = 2 pacotes no quiosque (1 display + 1 buffer). MANTER = 1 pacote. REVISAR/CORTAR = mínimo viável. Repor do depósito 2-3x/semana, não diariamente.`,
-              `REGRA DOS 60 DIAS: SKU que vende <5 un/mês por 60 dias → liquidação 30% off por 30 dias → se não vendeu, doar/descartar. Capital parado é custo de oportunidade.`,
-              `CONTAGEM RÁPIDA: Inventário parcial diário (10 SKUs/dia por amostragem). Inventário completo mensal. Discrepância >5%: investigar furto ou erro de registro.`,
-              `HORÁRIOS DE PICO: Nova América tem 3 picos — almoço (12-14h), saída trabalho (17-19h), noite familiar (19-21h). Demonstração ativa nos picos. Reposição e organização nos vales (10-12h, 14-16h).`,
-              `DADOS: Registrar TODA venda com categoria e horário. Em 30 dias, você terá curva de demanda por hora do dia, dia da semana, e categoria. Esse dado vale mais que qualquer estimativa teórica.`,
-              `COMPRAS: Manter pipeline de 10-20 amostras de novos produtos sempre em trânsito. Lead time China = 30-45 dias. Planejar compra com 60 dias de antecedência. Para Food & Candy nacional: pedido semanal com distribuidor.`,
-            ]},
-          ];
-          
-          // Benchmark data: 202 items from 3 sources (Mar/2026)
-          const benchmarkData = [
-            {cat:"Papelaria", loop:null, tiger:22.75, daiso:12.06, miniso:34.81, tiger_r:"€1-6", daiso_r:"R$8-17", miniso_r:"R$10-140"},
-            {cat:"Beauty", loop:null, tiger:20.15, daiso:14.24, miniso:35.32, tiger_r:"€2-5", daiso_r:"R$10-20", miniso_r:"R$16-75"},
-            {cat:"Brinquedos", loop:null, tiger:23.40, daiso:12.99, miniso:57.13, tiger_r:"€2-6", daiso_r:"R$10-17", miniso_r:"R$30-90"},
-            {cat:"Cozinha", loop:null, tiger:28.44, daiso:14.61, miniso:70.99, tiger_r:"€3-6", daiso_r:"R$12-17", miniso_r:"R$40-110"},
-            {cat:"Home Fragrance", loop:null, tiger:22.75, daiso:14.66, miniso:28.74, tiger_r:"€2-6", daiso_r:"R$12-17", miniso_r:"R$15-50"},
-            {cat:"Iluminação", loop:null, tiger:36.83, daiso:null, miniso:59.08, tiger_r:"€3-10", daiso_r:"—", miniso_r:"R$20-80"},
-            {cat:"Acessórios", loop:null, tiger:23.56, daiso:13.59, miniso:38.82, tiger_r:"€2-5", daiso_r:"R$10-20", miniso_r:"R$13-75"},
-            {cat:"Food & Candy", loop:null, tiger:15.79, daiso:18.32, miniso:null, tiger_r:"€2-4", daiso_r:"R$13-30", miniso_r:"—"},
-            {cat:"Party", loop:null, tiger:14.08, daiso:null, miniso:null, tiger_r:"€2-3", daiso_r:"—", miniso_r:"—"},
-          ];
-          // Fill Loop PM from catStats
-          benchmarkData.forEach(b => {
-            const cs = catStats.find(c => c.name === b.cat);
-            if (cs && cs.count > 0) {
-              const catSkus = skus.filter(s => s.c === b.cat);
-              if (catSkus.length) b.loop = catSkus.reduce((a,s) => a + s.pv, 0) / catSkus.length;
-            }
-          });
-          const getPos = (b) => {
-            const vals = [["Loop",b.loop],["Tiger",b.tiger],["Daiso",b.daiso],["Miniso",b.miniso]].filter(v=>v[1]!=null);
-            vals.sort((a,c)=>a[1]-c[1]);
-            const idx = vals.findIndex(v=>v[0]==="Loop");
-            if(idx<0) return {rank:"-",total:vals.length,emoji:"⬜"};
-            const rank = idx+1;
-            const emoji = rank===1?"🟢":rank===vals.length?"🔴":"🟡";
-            return {rank,total:vals.length,emoji};
-          };
-
-          return (
-            <div>
-              <div style={{background:"linear-gradient(135deg, #1e3c72, #2a5298)", borderRadius:16, padding:24, marginBottom:24, color:"white"}}>
-                <div style={{fontSize:22, fontWeight:800, marginBottom:8}}>💡 Insights — Head de Vendas & VM</div>
-                <div style={{fontSize:13, opacity:0.85}}>Análise do sortimento atual com recomendações baseadas em benchmarks Flying Tiger, Miniso, Daiso, Action e Cacau Show. Foco: maximizar KPIs → vendas.</div>
-              </div>
-              
-              {sections.map((sec, si) => (
-                <div key={si} style={{background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", borderLeft:`4px solid ${sec.color}`}}>
-                  <div style={{fontSize:16, fontWeight:800, marginBottom:14, color:sec.color}}>{sec.title}</div>
-                  <div style={{display:"flex", flexDirection:"column", gap:10}}>
-                    {sec.items.filter(Boolean).map((item, ii) => (
-                      <div key={ii} style={{fontSize:13, lineHeight:1.6, padding:"10px 14px", background:"#f8f9fa", borderRadius:10, color:"#2d3436"}}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              
-              {/* BENCHMARK COMPETITIVO */}
-              <div style={{background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", borderLeft:"4px solid #e17055"}}>
-                <div style={{fontSize:16, fontWeight:800, marginBottom:6, color:"#e17055"}}>📊 Benchmark Competitivo — PM por Categoria (R$)</div>
-                <div style={{fontSize:11, color:"#888", marginBottom:14}}>202 itens pesquisados · Fontes: lojasminiso.com.br, flyingtiger.com (€→R$6,50), daiso.com.br · Mar/2026</div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%", borderCollapse:"collapse", fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#2d3436", color:"white"}}>
-                        <th style={{padding:"8px 10px", textAlign:"left", borderRadius:"8px 0 0 0"}}>Categoria</th>
-                        <th style={{padding:"8px 10px", textAlign:"center", background:"#6C5CE7"}}>Loop</th>
-                        <th style={{padding:"8px 10px", textAlign:"center", background:"#e17055"}}>F. Tiger</th>
-                        <th style={{padding:"8px 10px", textAlign:"center", background:"#00b894"}}>Daiso BR</th>
-                        <th style={{padding:"8px 10px", textAlign:"center", background:"#E84393"}}>Miniso</th>
-                        <th style={{padding:"8px 10px", textAlign:"center", borderRadius:"0 8px 0 0"}}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {benchmarkData.map((b, i) => {
-                        const pos = getPos(b);
-                        const bg = i % 2 ? "#f8f9fa" : "white";
-                        return (
-                          <tr key={i} style={{background: bg}}>
-                            <td style={{padding:"7px 10px", fontWeight:600, borderBottom:"1px solid #eee"}}>{b.cat}</td>
-                            <td style={{padding:"7px 10px", textAlign:"center", fontWeight:700, color:"#6C5CE7", borderBottom:"1px solid #eee"}}>{b.loop ? `R$${b.loop.toFixed(0)}` : "—"}</td>
-                            <td style={{padding:"7px 10px", textAlign:"center", color:"#e17055", borderBottom:"1px solid #eee"}}>{b.tiger ? `R$${b.tiger.toFixed(0)}` : "—"}</td>
-                            <td style={{padding:"7px 10px", textAlign:"center", color:"#00b894", borderBottom:"1px solid #eee"}}>{b.daiso ? `R$${b.daiso.toFixed(0)}` : "—"}</td>
-                            <td style={{padding:"7px 10px", textAlign:"center", color:"#E84393", borderBottom:"1px solid #eee"}}>{b.miniso ? `R$${b.miniso.toFixed(0)}` : "—"}</td>
-                            <td style={{padding:"7px 10px", textAlign:"center", fontWeight:700, fontSize:11, borderBottom:"1px solid #eee"}}>{pos.emoji} {pos.rank}º/{pos.total}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Key insights from benchmark */}
-                <div style={{marginTop:14, display:"flex", flexDirection:"column", gap:8}}>
-                  {[
-                    benchmarkData.filter(b => {const p=getPos(b); return p.rank===p.total && p.total>1;}).length > 0 ?
-                      `🔴 MAIS CARO em: ${benchmarkData.filter(b=>{const p=getPos(b);return p.rank===p.total&&p.total>1}).map(b=>b.cat).join(", ")}. Revisar SKUs >R$50 nessas categorias — puxam PM para cima e afastam da zona de impulso.` : null,
-                    benchmarkData.filter(b => {const p=getPos(b); return p.rank===1 && p.total>1;}).length > 0 ?
-                      `🟢 MAIS BARATO em: ${benchmarkData.filter(b=>{const p=getPos(b);return p.rank===1&&p.total>1}).map(b=>b.cat).join(", ")}. Vantagem competitiva real — comunicar "a partir de R$5" nessas categorias.` : null,
-                    `📍 Daiso está no RJ (Rio Sul, ParkJacarepaguá, Nova Iguaçu) — PM R$12-18 é o concorrente de preço mais próximo. Loop se diferencia por curadoria visual, não preço.`,
-                    `📍 Miniso opera 2-4x acima da Loop em todas as categorias. No Nova América (sem Miniso), Loop tem faixa R$5-20 exclusiva.`,
-                    `📍 Flying Tiger PM R$15-37 é o benchmark de posicionamento ideal. 70% dos itens <€5 (R$32) gera P/A de 4-6 peças.`,
-                  ].filter(Boolean).map((insight, ii) => (
-                    <div key={ii} style={{fontSize:12, lineHeight:1.5, padding:"8px 12px", background:"#fff5f0", borderRadius:8, color:"#2d3436"}}>{insight}</div>
-                  ))}
+          const ap = purchaseLog;
+          const filled = idealSlots.filter(s => s.matched && !s.isNew);
+          const openSlots = idealSlots.filter(s => !s.matched);
+          const extras = idealSlots.filter(s => s.isNew);
+          const totalSlots = idealSlots.filter(s => !s.isNew).length;
+          const catGaps = {}; openSlots.forEach(s => { catGaps[s.c] = (catGaps[s.c]||0) + 1; });
+          const pBuckets = {"R$0-10":0,"R$10-20":0,"R$20-35":0,"R$35-50":0,"R$50+":0};
+          ap.forEach(p => { const pv=Number(p.pv)||0; if(pv<=10) pBuckets["R$0-10"]++; else if(pv<=20) pBuckets["R$10-20"]++; else if(pv<=35) pBuckets["R$20-35"]++; else if(pv<=50) pBuckets["R$35-50"]++; else pBuckets["R$50+"]++; });
+          const apCats = {}; ap.forEach(p => { const c=p.categoria||"?"; if(!apCats[c]) apCats[c]={n:0,inv:0,scores:[],margens:[]}; apCats[c].n++; apCats[c].inv+=(Number(p.custo)||0)*(Number(p.qtd)||0); apCats[c].scores.push(Number(p.score)||0); apCats[c].margens.push(Number(p.margem)||0); });
+          return (<div style={{padding:20, maxWidth:1100, margin:"0 auto"}}>
+            <div style={{fontSize:22, fontWeight:800, marginBottom:20}}>💡 Insights Dinâmicos</div>
+            {ap.length === 0 ? (<div style={{background:"white", borderRadius:16, padding:40, textAlign:"center"}}><div style={{fontSize:48, marginBottom:12}}>🔍</div><div style={{fontSize:16, fontWeight:700}}>Sem dados</div><div style={{color:"#888"}}>Aprove produtos para gerar insights.</div></div>
+            ) : (<div style={{display:"flex", flexDirection:"column", gap:16}}>
+              {/* HEALTH */}
+              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>🏥 Saúde do Sortimento</div>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:12}}>
+                  <div style={{padding:12, borderRadius:10, background:"#f0f7ff"}}><div style={{fontSize:11, color:"#888"}}>Cobertura</div><div style={{fontSize:22, fontWeight:800, color:"#0984e3"}}>{filled.length}/{totalSlots}</div><div style={{fontSize:11, color:"#888"}}>{totalSlots>0?(filled.length/totalSlots*100).toFixed(0):0}% preenchido</div></div>
+                  <div style={{padding:12, borderRadius:10, background:extras.length?"#fef2f2":"#f0fdf4"}}><div style={{fontSize:11, color:"#888"}}>Fora do Ideal</div><div style={{fontSize:22, fontWeight:800, color:extras.length?"#e17055":"#00b894"}}>{extras.length}</div></div>
+                  <div style={{padding:12, borderRadius:10, background:"#fff8e1"}}><div style={{fontSize:11, color:"#888"}}>Categorias</div><div style={{fontSize:22, fontWeight:800, color:"#f39c12"}}>{funnelData.n_cats}/13</div></div>
+                  <div style={{padding:12, borderRadius:10, background:"#f5f0ff"}}><div style={{fontSize:11, color:"#888"}}>Rejeitados</div><div style={{fontSize:22, fontWeight:800, color:"#6C5CE7"}}>{rejectedLog.length}</div></div>
                 </div>
               </div>
-
-              {/* FAIXAS DE PREÇO COMPARATIVAS */}
-              <div style={{background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", borderLeft:"4px solid #fdcb6e"}}>
-                <div style={{fontSize:16, fontWeight:800, marginBottom:14, color:"#f39c12"}}>📐 Faixas de Preço Comparativas</div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%", borderCollapse:"collapse", fontSize:11}}>
-                    <thead>
-                      <tr style={{background:"#f39c12", color:"white"}}>
-                        <th style={{padding:"7px 8px", textAlign:"left", borderRadius:"8px 0 0 0"}}>Categoria</th>
-                        <th style={{padding:"7px 8px", textAlign:"center"}}>F. Tiger (EUR)</th>
-                        <th style={{padding:"7px 8px", textAlign:"center"}}>Daiso BR</th>
-                        <th style={{padding:"7px 8px", textAlign:"center", borderRadius:"0 8px 0 0"}}>Miniso BR</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {benchmarkData.map((b, i) => (
-                        <tr key={i} style={{background: i%2 ? "#fffdf5" : "white"}}>
-                          <td style={{padding:"6px 8px", fontWeight:600, borderBottom:"1px solid #f0ead6"}}>{b.cat}</td>
-                          <td style={{padding:"6px 8px", textAlign:"center", borderBottom:"1px solid #f0ead6", fontFamily:"monospace"}}>{b.tiger_r}</td>
-                          <td style={{padding:"6px 8px", textAlign:"center", borderBottom:"1px solid #f0ead6", fontFamily:"monospace"}}>{b.daiso_r}</td>
-                          <td style={{padding:"6px 8px", textAlign:"center", borderBottom:"1px solid #f0ead6", fontFamily:"monospace"}}>{b.miniso_r}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* GAPS */}
+              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>🎯 Gaps (slots abertos)</div>
+                <div style={{display:"flex", flexWrap:"wrap", gap:8}}>
+                  {Object.entries(catGaps).sort((a,b)=>b[1]-a[1]).map(([cat,n]) => (<div key={cat} style={{padding:"8px 14px", borderRadius:10, background:(CAT_COLORS[cat]||"#ccc")+"15", border:"2px solid "+(CAT_COLORS[cat]||"#ccc")+"30"}}><span>{CAT_EMOJI[cat]} {cat} </span><span style={{background:CAT_COLORS[cat], color:"white", borderRadius:10, padding:"2px 8px", fontSize:11, fontWeight:800}}>{n}</span></div>))}
+                  {Object.keys(catGaps).length===0 && <div style={{color:"#00b894", fontWeight:700}}>✅ Todos preenchidos!</div>}
                 </div>
               </div>
-
-              <div style={{background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-                <div style={{fontSize:16, fontWeight:800, marginBottom:14, color:"#d63031"}}>🏆 Top 5 SKUs (Lucro/mês) vs ⚠️ Bottom 5 (Score)</div>
-                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-                  <div>
-                    <div style={{fontSize:12, fontWeight:700, color:"#00b894", marginBottom:8}}>🏆 Top Performers</div>
-                    {top5.map((s,i) => (
-                      <div key={i} style={{display:"flex", justifyContent:"space-between", padding:"6px 10px", background:i%2?"#f8f9fa":"white", borderRadius:6, fontSize:12, marginBottom:2}}>
-                        <span style={{fontWeight:600}}>{i+1}. {s.n.substring(0,28)}</span>
-                        <span style={{color:"#00b894", fontWeight:700}}>{fmt(s.lu)}/m</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <div style={{fontSize:12, fontWeight:700, color:"#d63031", marginBottom:8}}>⚠️ Candidatos a Corte</div>
-                    {bottom5.map((s,i) => (
-                      <div key={i} style={{display:"flex", justifyContent:"space-between", padding:"6px 10px", background:i%2?"#ffeaea":"white", borderRadius:6, fontSize:12, marginBottom:2}}>
-                        <span style={{fontWeight:600}}>{i+1}. {s.n.substring(0,28)}</span>
-                        <span style={{color:"#d63031", fontWeight:700}}>⭐{s.sc.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
+              {/* PRICE DIST */}
+              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>💰 Distribuição de Preço</div>
+                <div style={{display:"flex", gap:4, alignItems:"end", height:120}}>
+                  {Object.entries(pBuckets).map(([r,n]) => { const mx=Math.max(...Object.values(pBuckets),1); const h=n>0?Math.max(20,n/mx*100):5;
+                    return (<div key={r} style={{flex:1, textAlign:"center"}}><div style={{fontSize:14, fontWeight:800}}>{n}</div><div style={{height:h, background:"linear-gradient(to top, #6C5CE7, #a29bfe)", borderRadius:"6px 6px 0 0"}} /><div style={{fontSize:10, color:"#888", marginTop:4}}>{r}</div></div>);
+                  })}
+                </div>
+                <div style={{marginTop:12, fontSize:12, color:"#888"}}>💡 Ideal: 60-70% ≤R$20. Atual: {(funnelData.pct_sub20*100).toFixed(0)}%{funnelData.pct_sub20<0.6?<span style={{color:"#e17055", fontWeight:700}}> — adicione itens baratos</span>:<span style={{color:"#00b894", fontWeight:700}}> — na faixa ideal!</span>}</div>
+              </div>
+              {/* FUNNEL IMPACT */}
+              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>📊 Impacto no Funil</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16}}>
+                  {[{l:"Parada",v:funnelData.sr+"%",c:"#0984e3",b:funnelOverrides.sr_base||3,u:"%"},
+                    {l:"Conversão",v:funnelData.conv+"%",c:"#00b894",b:funnelOverrides.conv_base||20,u:"%"},
+                    {l:"P/A",v:funnelData.pa,c:"#E84393",b:funnelOverrides.pa_base||2.1,u:""}
+                  ].map(f => (<div key={f.l} style={{textAlign:"center"}}><div style={{fontSize:12, color:"#888"}}>{f.l}</div><div style={{fontSize:28, fontWeight:800, color:f.c}}>{f.v}</div><div style={{fontSize:10, color:parseFloat(f.v)>f.b?"#00b894":"#e17055"}}>{parseFloat(f.v)>f.b?"▲":"▼"} vs base {f.b}{f.u}</div></div>))}
                 </div>
               </div>
-            </div>
-          );
+              {/* CAT PERF */}
+              {Object.keys(apCats).length > 0 && (<div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>📁 Performance (aprovados)</div>
+                <table style={{width:"100%", borderCollapse:"collapse", fontSize:13}}><thead><tr style={{borderBottom:"2px solid #eee"}}>
+                  <th style={{textAlign:"left", padding:"8px 12px", color:"#888"}}>Categoria</th><th style={{textAlign:"center", color:"#888"}}>SKUs</th><th style={{textAlign:"right", color:"#888"}}>Investimento</th><th style={{textAlign:"right", color:"#888"}}>Score</th><th style={{textAlign:"right", color:"#888"}}>Margem</th><th style={{textAlign:"center", color:"#888"}}>Gaps</th>
+                </tr></thead><tbody>
+                  {Object.entries(apCats).sort((a,b)=>b[1].n-a[1].n).map(([cat,d]) => (<tr key={cat} style={{borderBottom:"1px solid #f5f5f5"}}>
+                    <td style={{padding:"10px 12px", fontWeight:600}}>{CAT_EMOJI[cat]} {cat}</td><td style={{textAlign:"center"}}>{d.n}</td><td style={{textAlign:"right", color:"#e17055"}}>{fmt(d.inv)}</td><td style={{textAlign:"right"}}>{(d.scores.reduce((a,v)=>a+v,0)/d.scores.length).toFixed(2)}</td><td style={{textAlign:"right"}}>{(d.margens.reduce((a,v)=>a+v,0)/d.margens.length).toFixed(0)}%</td><td style={{textAlign:"center", color:(catGaps[cat]||0)>0?"#e17055":"#00b894", fontWeight:700}}>{catGaps[cat]||"✅"}</td>
+                  </tr>))}
+                </tbody></table>
+              </div>)}
+            </div>)}
+          </div>);
         })()}
 
       
