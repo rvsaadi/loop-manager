@@ -49,7 +49,6 @@ export default function LoopApp() {
   const [idealCatFilter, setIdealCatFilter] = useState(null);
   const [idealStatusFilter, setIdealStatusFilter] = useState(null);
 
-  const suppliers = useMemo(() => [...new Set([...skus.map(s=>s.f),...purchaseLog.map(p=>p.fornecedor)].filter(Boolean))].sort(), [skus, purchaseLog]);
 
   const handleApprove = useCallback((item) => {
     const now = new Date().toISOString().slice(0,10);
@@ -115,6 +114,8 @@ export default function LoopApp() {
     const res = calcScore(pv, r.cu, qc, {l:r.l,w:r.w,h:r.h}, r.c);
     return {...r, pv, qc, mg:res.margem, sc:res.score, rc:res.rec, dm:res.demanda, rv:res.receitaMes, lu:res.lucroMes, pi:res.pi, gm:res.gmroi};
   }), [skuOverrides]);
+
+  const suppliers = useMemo(() => [...new Set([...skus.map(s=>s.f),...purchaseLog.map(p=>p.fornecedor)].filter(Boolean))].sort(), [skus, purchaseLog]);
 
   const catStats = useMemo(() => {
     const map = {};
