@@ -294,7 +294,7 @@ export default function LoopApp() {
             <div style={{fontSize:14, fontWeight:700, color:"#888", marginBottom:12}}>📦 Catálogo Base ({skus.length} SKUs v6 — referência)</div>
             <div style={{display:"flex", flexWrap:"wrap", gap:12, marginBottom:24}}>
               <KPICard label="Receita/mês" value={fmt(totals.receita)} color="#0984e3" emoji="💰" sub={AUX.painel.comp_dia+" compr/dia"} />
-              <KPICard label="Lucro/mês" value={fmt(totals.lucro)} color="#00b894" emoji="📈" sub={"Margem "+totals.margem.toFixed(1)+"%"} />
+              <KPICard label="Lucro/mês" value={fmt(totals.lucro)} color="#00b894" emoji="📈" sub={"Margem "+(totals.margem||0).toFixed(1)+"%"} />
               <KPICard label="SKUs" value={totals.skus} color="#6C5CE7" emoji="📦" sub={catStats.length+" categorias"} />
             </div>
             <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:20}}>
@@ -311,7 +311,7 @@ export default function LoopApp() {
                       <td style={{padding:"10px 12px", fontWeight:600}}>{CAT_EMOJI[cat.cat]} {cat.cat}</td>
                       <td style={{textAlign:"center"}}>{cat.count}</td>
                       <td style={{textAlign:"right", color:"#0984e3"}}>{fmt(cat.receita)}</td>
-                      <td style={{textAlign:"right"}}>{cat.score.toFixed(2)}</td>
+                      <td style={{textAlign:"right"}}>{(cat.score||0).toFixed(2)}</td>
                     </tr>))}
                 </tbody></table></div>
             </div>
@@ -393,15 +393,15 @@ export default function LoopApp() {
                       <div>📦 Estoque: <b style={{color:"#6C5CE7"}}>{fmt(cat.estoqueVenda)}</b></div>
                       <div>💰 Venda: <b style={{color:"#0984e3"}}>{fmt(cat.receita)}/m</b></div>
                       <div>📈 Lucro: <b style={{color:"#00b894"}}>{fmt(cat.lucro)}/m</b></div>
-                      <div>📊 Margem: <b>{avgMg.toFixed(0)}%</b></div>
-                      <div>⏱️ Cobert: <b style={{color: cat.cobertura>6?"#d63031":cat.cobertura>3?"#fdcb6e":"#00b894"}}>{cat.cobertura.toFixed(1)}m</b></div>
+                      <div>📊 Margem: <b>{(avgMg||0).toFixed(0)}%</b></div>
+                      <div>⏱️ Cobert: <b style={{color: cat.cobertura>6?"#d63031":cat.cobertura>3?"#fdcb6e":"#00b894"}}>{(cat.cobertura||0).toFixed(1)}m</b></div>
                       <div>ε: <b>{AUX.elast[cat.name] || "N/A"}</b></div>
                       <div style={{color:"#00b894"}}>✅ {ampliar}</div>
                       <div style={{color:"#d63031"}}>🔴 {cortar}</div>
                     </div>
                     <ScoreBar score={avgScore} />
                     {topSku && <div style={{fontSize:11, color:"#888", padding:8, background:"#f9f9f9", borderRadius:8, marginTop:8}}>
-                      ⭐ Top: <b>{topSku.n.substring(0,30)}</b> ({topSku.sc.toFixed(1)})
+                      ⭐ Top: <b>{topSku.n.substring(0,30)}</b> ({(topSku?.sc||0).toFixed(1)})
                     </div>}
                     <button onClick={() => {setTab("catalogo"); setCatFilter(cat.name);}}
                       style={{width:"100%", marginTop:10, padding:"8px 0", borderRadius:10,
@@ -518,19 +518,19 @@ export default function LoopApp() {
                                 </td>
                                 <td style={{textAlign:"center", padding:"8px 6px"}}>{v.skus}</td>
                                 <td style={{textAlign:"right", padding:"8px 6px", color:"#e17055", fontWeight:600}}>
-                                  R${v.custo.toFixed(0)}
+                                  R${(v.custo||0).toFixed(0)}
                                 </td>
                                 <td style={{textAlign:"right", padding:"8px 6px", color:"#0984e3", fontWeight:600}}>
-                                  R${v.venda.toFixed(0)}/m
+                                  R${(v.venda||0).toFixed(0)}/m
                                 </td>
                                 <td style={{textAlign:"right", padding:"8px 6px", color:"#00b894", fontWeight:600}}>
-                                  R${v.lucro.toFixed(0)}/m
+                                  R${(v.lucro||0).toFixed(0)}/m
                                 </td>
                                 <td style={{textAlign:"right", padding:"8px 6px"}}>
-                                  {(v.margem / v.skus).toFixed(0)}%
+                                  {(v.margem / (v.skus||1)).toFixed(0)}%
                                 </td>
                                 <td style={{textAlign:"right", padding:"8px 6px"}}>
-                                  {(v.score / v.skus).toFixed(2)}
+                                  {(v.score / (v.skus||1)).toFixed(2)}
                                 </td>
                               </tr>
                             ))}
@@ -538,13 +538,13 @@ export default function LoopApp() {
                               <td style={{padding:"10px 12px"}}>TOTAL</td>
                               <td style={{textAlign:"center", padding:"10px 6px"}}>{purchaseLog.length}</td>
                               <td style={{textAlign:"right", padding:"10px 6px", color:"#e17055"}}>
-                                R${totalCusto.toFixed(0)}
+                                R${(totalCusto||0).toFixed(0)}
                               </td>
                               <td style={{textAlign:"right", padding:"10px 6px", color:"#0984e3"}}>
-                                R${totalVenda.toFixed(0)}/m
+                                R${(totalVenda||0).toFixed(0)}/m
                               </td>
                               <td style={{textAlign:"right", padding:"10px 6px", color:"#00b894"}}>
-                                R${totalLucro.toFixed(0)}/m
+                                R${(totalLucro||0).toFixed(0)}/m
                               </td>
                               <td style={{textAlign:"right", padding:"10px 6px"}}>
                                 {purchaseLog.length > 0 ? (purchaseLog.reduce((a,p) => a + (Number(p.margem)||0), 0) / purchaseLog.length).toFixed(0) : 0}%
@@ -860,7 +860,7 @@ export default function LoopApp() {
               <div style={{background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}>
                   <span style={{fontSize:14, fontWeight:700}}>Progresso do Sortimento</span>
-                  <span style={{fontSize:14, fontWeight:900, color:"#6C5CE7"}}>{matchedCount}/{totalSlotsN} ({progress.toFixed(0)}%)</span>
+                  <span style={{fontSize:14, fontWeight:900, color:"#6C5CE7"}}>{matchedCount}/{totalSlotsN} ({(progress||0).toFixed(0)}%)</span>
                 </div>
                 <div style={{height:20, background:"#f0f0f0", borderRadius:10, overflow:"hidden", position:"relative"}}>
                   <div style={{height:"100%", width:Math.max(0,progress)+"%", background:"linear-gradient(90deg, #6C5CE7, #00b894)", borderRadius:10, transition:"width 0.5s"}} />
@@ -874,10 +874,10 @@ export default function LoopApp() {
 
               <div style={{display:"flex", gap:12, marginBottom:16, flexWrap:"wrap"}}>
                 {[
-                  {label:"Capital Estimado", value:"R$"+totalCapital.toFixed(0), color: totalCapital > idealBudget ? "#d63031" : "#00b894", sub: totalCapital > idealBudget ? "ACIMA do budget" : ((100-totalCapital/idealBudget*100).toFixed(0)+"% abaixo")},
+                  {label:"Capital Estimado", value:"R$"+(totalCapital||0).toFixed(0), color: totalCapital > idealBudget ? "#d63031" : "#00b894", sub: totalCapital > idealBudget ? "ACIMA do budget" : ((100-totalCapital/idealBudget*100).toFixed(0)+"% abaixo")},
                   {label:"SKUs Pendentes", value:pendingCount, color:"#e17055", sub:"precisam ser comprados"},
-                  {label:"PM Ideal", value:"R$"+(idealSlots.reduce((a,s)=>a+s.pv,0)/idealSlots.length).toFixed(0), color:"#6C5CE7"},
-                  {label:"Mg Media", value:(idealSlots.reduce((a,s)=>a+s.mg,0)/idealSlots.length).toFixed(0)+"%", color:"#00b894"},
+                  {label:"PM Ideal", value:"R$"+(idealSlots.reduce((a,s)=>a+s.pv,0)/(idealSlots.length||1)).toFixed(0), color:"#6C5CE7"},
+                  {label:"Mg Media", value:(idealSlots.reduce((a,s)=>a+s.mg,0)/(idealSlots.length||1)).toFixed(0)+"%", color:"#00b894"},
                   {label:"Categorias", value:[...new Set(idealSlots.map(s=>s.c))].length, color:"#fd79a8"},
                 ].map((k,i) => (
                   <div key={i} style={{flex:"1 1 130px", background:"white", borderRadius:14, padding:"14px 18px", boxShadow:"0 2px 10px rgba(0,0,0,0.05)", border:"2px solid "+(k.color||"#eee")+"20"}}>
@@ -897,7 +897,7 @@ export default function LoopApp() {
                       <button key={i} onClick={() => setIdealCatFilter(idealCatFilter === c.name ? null : c.name)} style={{padding:10, borderRadius:10, border: idealCatFilter === c.name ? "2px solid #6C5CE7" : "1px solid #eee", background: idealCatFilter === c.name ? "#6C5CE710" : "white", cursor:"pointer", textAlign:"left"}}>
                         <div style={{display:"flex", justifyContent:"space-between"}}><span style={{fontWeight:700, fontSize:12}}>{c.name}</span><span style={{fontSize:11, color:"#888"}}>{c.matched}/{c.total}</span></div>
                         <div style={{height:4, background:"#f0f0f0", borderRadius:2, marginTop:6}}><div style={{height:"100%", width:pct+"%", background:"#6C5CE7", borderRadius:2}} /></div>
-                        <div style={{fontSize:10, color:"#aaa", marginTop:3}}>R${c.capital.toFixed(0)}</div>
+                        <div style={{fontSize:10, color:"#aaa", marginTop:3}}>R${(c.capital||0).toFixed(0)}</div>
                       </button>
                     );
                   })}
@@ -928,8 +928,8 @@ export default function LoopApp() {
                         {!s.matched && <div style={{fontSize:10, color:"#aaa", fontStyle:"italic"}}>{s.r}</div>}
                       </div>
                       <div style={{fontWeight:800, color:"#6C5CE7"}}>R${s.matched && s.matchedData ? s.matchedData.pv : s.pv}</div>
-                      <div style={{fontSize:11, color:"#888"}}>R${s.matched && s.matchedData ? (s.matchedData.cu||0).toFixed(2) : s.cu.toFixed(2)}</div>
-                      <div style={{fontSize:11, fontWeight:700, color: s.mg >= 70 ? "#00b894" : s.mg >= 50 ? "#fdcb6e" : "#d63031"}}>{s.mg.toFixed(0)}%</div>
+                      <div style={{fontSize:11, color:"#888"}}>R${s.matched && s.matchedData ? (s.matchedData.cu||0).toFixed(2) : (s.cu||0).toFixed(2)}</div>
+                      <div style={{fontSize:11, fontWeight:700, color: s.mg >= 70 ? "#00b894" : s.mg >= 50 ? "#fdcb6e" : "#d63031"}}>{(s.mg||0).toFixed(0)}%</div>
                       <div style={{fontSize:11, color:"#888"}}>{s.matched && s.matchedData ? s.matchedData.qtd : s.q}</div>
                       <div style={{fontSize:11, color:"#888"}}>R${(s.matched && s.matchedData ? (s.matchedData.cu||0)*(s.matchedData.qtd||0) : capItem).toFixed(0)}</div>
                       <div><span style={{fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:6, background: s.l === "Entrada" ? "#00b89415" : s.l === "Base" ? "#6C5CE715" : "#E8439315", color: s.l === "Entrada" ? "#00b894" : s.l === "Base" ? "#6C5CE7" : "#E84393"}}>{s.l}</span></div>
