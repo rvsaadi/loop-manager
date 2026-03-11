@@ -617,10 +617,12 @@ export default function LoopApp() {
                             alignItems:"center"
                           }}>
                             <span style={{color:"#888"}}>{idx+1}</span>
-                            <div>
+                            <div style={{display:"flex", gap:8, alignItems:"center"}}>
+                              {(p.imagePreview||p.image) ? <img src={p.imagePreview||p.image} alt="" style={{width:36, height:36, borderRadius:6, objectFit:"cover"}} /> : <div style={{width:36, height:36, borderRadius:6, background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14}}>{CAT_EMOJI[p.categoria]||"📦"}</div>}
+                              <div>
                               <div style={{fontWeight:600, fontSize:13}}>{p.nome}</div>
-                              <div style={{fontSize:11, color:"#888"}}>{CAT_EMOJI[p.categoria]} {p.categoria} · {p.linha}{p.matchedSku ? " · 🎯"+p.matchedSku : ""}</div>
-                            </div>
+                              <div style={{fontSize:11, color:"#888"}}>{CAT_EMOJI[p.categoria]} {p.categoria} · {p.linha}{p.matchedSku && <span style={{color:"#6C5CE7", fontWeight:600}}> · 🎯 {p.matchedSku}</span>}</div>
+                            </div></div>
                             <div style={{textAlign:"right", fontWeight:700}}>R${p.pv}</div>
                             <div style={{textAlign:"right", color:"#888"}}>R${p.custo?.toFixed(2)}</div>
                             <div style={{textAlign:"right"}}>{p.qtd}</div>
@@ -942,7 +944,7 @@ export default function LoopApp() {
                       <div style={{textAlign:"center"}}>{s.matched ? (s.isNew ? <span title="Novo">&#x1F195;</span> : <span title="Comprado">&#x2705;</span>) : <span style={{color:"#ddd"}}>&#x2B1C;</span>}</div>
                       <div>{s.matchedData?.image ? <img src={s.matchedData.image} alt="" style={{width:36, height:36, borderRadius:6, objectFit:"cover"}} /> : <div style={{width:36, height:36, borderRadius:6, background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16}}>{CAT_EMOJI[s.c]||"📦"}</div>}</div>
                       <div>
-                        <div style={{fontWeight:700, fontSize:12}}>{s.matched ? s.matchedWith : s.n}</div>
+                        <div style={{fontWeight:700, fontSize:12}}>{s.sku && <span style={{color:"#6C5CE7", fontSize:10, marginRight:4}}>🎯 {s.sku}</span>}{s.matched ? s.matchedWith : s.n}</div>
                         {s.matched && <button onClick={() => { const p = purchaseLog.find(pr => pr.nome === s.matchedWith); if(p) goToEval(p); }} style={{background:"none",border:"1px solid #6C5CE730",borderRadius:6,padding:"1px 6px",cursor:"pointer",fontSize:10}} title="Voltar à avaliação">🔍</button>}
                         <div style={{fontSize:10, color:"#888"}}>{s.c} · {s.matched ? (s.matchedFornecedor||"") : s.r}</div>
                         {s.matched && s.matchedData && <div style={{fontSize:10, color:"#00b894"}}>Rec: {fmt(s.matchedData.receitaMes||0)}/m · Lucro: {fmt(s.matchedData.lucroMes||0)}/m</div>}

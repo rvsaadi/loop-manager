@@ -468,9 +468,16 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:12}}>
                     <div style={{display:"flex", flexDirection:"column", gap:3}}>
                       <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Fornecedor *</label>
-                      <input list="fornecedores-list" value={manualFornecedor} onChange={e=>setManualFornecedor(e.target.value)}
-                        placeholder="Selecione ou digite novo" style={{padding:"10px 12px", borderRadius:10, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:14, fontFamily:"inherit"}} />
-                      <datalist id="fornecedores-list">{suppliers.map(s=><option key={s} value={s}/>)}</datalist>
+                      <input value={manualFornecedor} onChange={e=>{setManualFornecedor(e.target.value);setSupplierInput(e.target.value);}}
+                        placeholder="Digite fornecedor" style={{padding:"10px 12px", borderRadius:10, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:14, fontFamily:"inherit"}} />
+                      {suppliers.length > 0 && <div style={{display:"flex", flexWrap:"wrap", gap:4, marginTop:4}}>
+                        {suppliers.slice(0,8).map(s => (
+                          <button key={s} type="button" onClick={() => {setManualFornecedor(s);setSupplierInput(s);}}
+                            style={{padding:"3px 10px", borderRadius:20, border: manualFornecedor===s ? "2px solid #6C5CE7" : "1px solid #ddd", 
+                            background: manualFornecedor===s ? "#6C5CE720" : "#f8f9fa", fontSize:11, cursor:"pointer", fontFamily:"inherit",
+                            color: manualFornecedor===s ? "#6C5CE7" : "#666", fontWeight: manualFornecedor===s ? 700 : 400}}>{s}</button>
+                        ))}
+                      </div>}
                     </div>
                     <div style={{display:"flex", flexDirection:"column", gap:3}}>
                       <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Linha (auto)</label>
