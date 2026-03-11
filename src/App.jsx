@@ -30,6 +30,7 @@ export default function LoopApp() {
     try { return JSON.parse(localStorage.getItem("loop_purchases") || sessionStorage.getItem("loop_purchases") || "[]"); } catch { return []; }
   });
   const [editIdx, setEditIdx] = useState(null);
+  const [prefillProduct, setPrefillProduct] = useState(null);
   const [rejectedLog, setRejectedLog] = useState(() => {
     try { return JSON.parse(localStorage.getItem("loop_rejected") || sessionStorage.getItem("loop_rejected") || "[]"); } catch { return []; }
   });
@@ -165,6 +166,19 @@ export default function LoopApp() {
     else { setSortBy(field); setSortDir(-1); }
   }, [sortBy]);
 
+    const catalogWithApproved = useMemo(() => {
+    const approvedAsCatalog = purchaseLog.map(p => ({
+      id: "ap_" + (p.matchedSku || p.nome), n: p.nome, f: p.fornecedor, 
+      c: p.categoria, l: p.linha || "Entrada",
+      pv: Number(p.pv)||0, cu: Number(p.custo)||0, 
+      mg: Number(p.margem)||0, q: Number(p.qtd)||0,
+      dm: Number(p.demanda)||0, rv: Number(p.receitaMes)||0, lu: Number(p.lucroMes)||0,
+      sc: Number(p.score)||0, rec: p.rec||"", eps: 0, sku: p.matchedSku||"",
+      _isApproved: true, _image: p.imagePreview || p.image,
+    }));
+    return [...filtered, ...approvedAsCatalog.filter(a => !filtered.some(f => f.n === a.n && f.f === a.f))];
+  }, [filtered, purchaseLog]);
+
   const priceBuckets = useMemo(() => {
     const b = {"0-10":0,"10-20":0,"20-35":0,"35-50":0,"50-100":0,"100-9999":0};
     skus.forEach(s => {
@@ -185,6 +199,11 @@ export default function LoopApp() {
       boxShadow: tab===id && highlight ? `0 2px 10px ${highlight}60` : "none"
     }}>{emoji} {label}</button>
   );
+
+  const goToEval = useCallback((product) => {
+    setPrefillProduct(product);
+    setTab("avaliar");
+  }, []);
 
   return (
     <div style={{
@@ -415,7 +434,7 @@ export default function LoopApp() {
         )}
 
         {/* AI EVALUATOR */}
-        {tab === "avaliar" && <AIEvaluator onApprove={handleApprove} onReject={handleReject} suppliers={suppliers} skus={skus} idealSlots={idealSlots} />}
+        {tab === "avaliar" && <AIEvaluator onApprove={handleApprove} onReject={handleReject} suppliers={suppliers} skus={skus} idealSlots={idealSlots} prefill={prefillProduct} onClearPrefill={() => setPrefillProduct(null)} />}
       </div>
 
 
@@ -614,6 +633,7 @@ export default function LoopApp() {
                             <div style={{textAlign:"right", fontSize:11, color:"#888"}}>{(p.demanda||0).toFixed?.(1)||"?"}</div>
                             <div style={{textAlign:"right", fontSize:11, color:"#0984e3"}}>{fmt(p.receitaMes || ((Number(p.demanda)||0) * (Number(p.pv)||0)))}</div>
                             <div style={{textAlign:"right", fontWeight:600, color:"#00b894"}}>{fmt(p.lucroMes || ((Number(p.demanda)||0) * ((Number(p.pv)||0) - (Number(p.custo)||0))))}</div>
+                            <button onClick={() => goToEval(p)} style={{background:"none",border:"1px solid #6C5CE730",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12}} title="Voltar à avaliação">🔍</button>
                             <div style={{display:"flex", gap:4}}>
                               <button onClick={() => {
                                 const globalIdx = purchaseLog.indexOf(p);
@@ -923,6 +943,7 @@ export default function LoopApp() {
                       <div>{s.matchedData?.image ? <img src={s.matchedData.image} alt="" style={{width:36, height:36, borderRadius:6, objectFit:"cover"}} /> : <div style={{width:36, height:36, borderRadius:6, background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16}}>{CAT_EMOJI[s.c]||"📦"}</div>}</div>
                       <div>
                         <div style={{fontWeight:700, fontSize:12}}>{s.matched ? s.matchedWith : s.n}</div>
+                        {s.matched && <button onClick={() => { const p = purchaseLog.find(pr => pr.nome === s.matchedWith); if(p) goToEval(p); }} style={{background:"none",border:"1px solid #6C5CE730",borderRadius:6,padding:"1px 6px",cursor:"pointer",fontSize:10}} title="Voltar à avaliação">🔍</button>}
                         <div style={{fontSize:10, color:"#888"}}>{s.c} · {s.matched ? (s.matchedFornecedor||"") : s.r}</div>
                         {s.matched && s.matchedData && <div style={{fontSize:10, color:"#00b894"}}>Rec: {fmt(s.matchedData.receitaMes||0)}/m · Lucro: {fmt(s.matchedData.lucroMes||0)}/m</div>}
                         {!s.matched && <div style={{fontSize:10, color:"#aaa", fontStyle:"italic"}}>{s.r}</div>}

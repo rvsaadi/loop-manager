@@ -9,7 +9,7 @@ import { RecBadge } from "../components/RecBadge.jsx";
 import { ScoreBar } from "../components/ScoreBar.jsx";
 import { Field } from "../components/Field.jsx";
 
-export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idealSlots }) {
+export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idealSlots, prefill, onClearPrefill }) {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -119,6 +119,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
       canibalizacao: aiResult.canibalizacao || "",
       imagePreview: imagePreview,
       timestamp: new Date().toISOString(),
+      _aiResult: aiResult,  // Store for re-evaluation
     };
   };
 
@@ -168,6 +169,26 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
   }, []);
+  // Pre-fill from approved/rejected product (back to evaluation)
+  useEffect(() => {
+    if (!prefill) return;
+    // Restore AI result
+    if (prefill._aiResult) {
+      setAiResult(prefill._aiResult);
+    }
+    // Restore manual fields
+    if (prefill.pv) setManualPv(String(prefill.pv));
+    if (prefill.custo) setManualCusto(String(prefill.custo));
+    if (prefill.qtd) setManualQtd(String(prefill.qtd));
+    if (prefill.categoria) setManualCat(prefill.categoria);
+    if (prefill.fornecedor) { setManualFornecedor(prefill.fornecedor); setSupplierInput(prefill.fornecedor); }
+    if (prefill.dims) setManualDims(prefill.dims);
+    if (prefill.imagePreview || prefill.image) setImagePreview(prefill.imagePreview || prefill.image);
+    setIsKit(prefill.isKit || false);
+    setLastAction(null);
+    if (onClearPrefill) onClearPrefill();
+  }, [prefill]);
+
 
 
   const handleImageUpload = (e) => {
