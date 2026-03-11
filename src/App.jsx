@@ -31,42 +31,6 @@ export default function LoopApp() {
   });
   const [editIdx, setEditIdx] = useState(null);
   const [prefillProduct, setPrefillProduct] = useState(null);
-  const [aiInsight, setAiInsight] = useState("");
-  const [aiInsightLoading, setAiInsightLoading] = useState(false);
-  
-  const generateAiInsight = useCallback(async () => {
-    if (purchaseLog.length === 0) return;
-    setAiInsightLoading(true);
-    try {
-      const sortimentSummary = {
-        total_skus: purchaseLog.length,
-        categorias: [...new Set(purchaseLog.map(p => p.categoria))],
-        pm: (purchaseLog.reduce((a,p) => a + (Number(p.pv)||0), 0) / purchaseLog.length).toFixed(0),
-        margem_media: (purchaseLog.reduce((a,p) => a + (Number(p.margem)||0), 0) / purchaseLog.length).toFixed(0) + "%",
-        investimento: purchaseLog.reduce((a,p) => a + (Number(p.custo)||0)*(Number(p.qtd)||0), 0),
-        receita_estimada: purchaseLog.reduce((a,p) => a + (Number(p.receitaMes)||0), 0),
-        lucro_estimado: purchaseLog.reduce((a,p) => a + (Number(p.lucroMes)||0), 0),
-        pct_sub20: ((purchaseLog.filter(p => (Number(p.pv)||0) <= 20).length / purchaseLog.length) * 100).toFixed(0) + "%",
-        slots_preenchidos: idealSlots.filter(s => s.matched).length,
-        slots_total: idealSlots.filter(s => !s.isNew).length,
-        produtos: purchaseLog.map(p => ({ nome: p.nome, cat: p.categoria, pv: p.pv, margem: p.margem, score: p.score, rec: p.rec, demanda: p.demanda })),
-        rejeitados: rejectedLog.length,
-        funil: { sr: funnelData.sr, conv: funnelData.conv, pa: funnelData.pa, receita_mes: funnelData.receita_mes, compradores_dia: funnelData.compradores_dia },
-      };
-      const res = await fetch("/api/analyze", {
-        method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          messages: [{role:"user", content: "Analise criticamente o sortimento construído até agora para o quiosque Loop (9m², Shopping Nova América, Rio de Janeiro). Dados:\n" + JSON.stringify(sortimentSummary, null, 2) + "\n\nDê: 1) Observações gerais (2-3 frases), 2) Pontos fortes (2-3), 3) Pontos fracos/riscos (2-3), 4) Sugestões concretas de próximos passos (3-4 ações). Seja direto e prático. Responda em português."}],
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          system: "Você é um consultor de varejo especializado em quiosques de impulso em shopping centers. Analise o sortimento de forma crítica e construtiva."
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.map(c => c.text).join("") || data.error || "Erro na análise";
-      setAiInsight(text);
-    } catch (e) { setAiInsight("Erro: " + e.message); }
-    setAiInsightLoading(false);
-  }, [purchaseLog, rejectedLog, idealSlots, funnelData]);
   const [rejectedLog, setRejectedLog] = useState(() => {
     try { return JSON.parse(localStorage.getItem("loop_rejected") || sessionStorage.getItem("loop_rejected") || "[]"); } catch { return []; }
   });
@@ -180,6 +144,43 @@ export default function LoopApp() {
   }, [skus]);
 
   const funnelData = useMemo(() => calculateFunnel(purchaseLog, funnelOverrides), [purchaseLog, funnelOverrides]);
+
+  const [aiInsight, setAiInsight] = useState("");
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  
+  const generateAiInsight = useCallback(async () => {
+    if (purchaseLog.length === 0) return;
+    setAiInsightLoading(true);
+    try {
+      const sortimentSummary = {
+        total_skus: purchaseLog.length,
+        categorias: [...new Set(purchaseLog.map(p => p.categoria))],
+        pm: (purchaseLog.reduce((a,p) => a + (Number(p.pv)||0), 0) / purchaseLog.length).toFixed(0),
+        margem_media: (purchaseLog.reduce((a,p) => a + (Number(p.margem)||0), 0) / purchaseLog.length).toFixed(0) + "%",
+        investimento: purchaseLog.reduce((a,p) => a + (Number(p.custo)||0)*(Number(p.qtd)||0), 0),
+        receita_estimada: purchaseLog.reduce((a,p) => a + (Number(p.receitaMes)||0), 0),
+        lucro_estimado: purchaseLog.reduce((a,p) => a + (Number(p.lucroMes)||0), 0),
+        pct_sub20: ((purchaseLog.filter(p => (Number(p.pv)||0) <= 20).length / purchaseLog.length) * 100).toFixed(0) + "%",
+        slots_preenchidos: idealSlots.filter(s => s.matched).length,
+        slots_total: idealSlots.filter(s => !s.isNew).length,
+        produtos: purchaseLog.map(p => ({ nome: p.nome, cat: p.categoria, pv: p.pv, margem: p.margem, score: p.score, rec: p.rec, demanda: p.demanda })),
+        rejeitados: rejectedLog.length,
+        funil: { sr: funnelData.sr, conv: funnelData.conv, pa: funnelData.pa, receita_mes: funnelData.receita_mes, compradores_dia: funnelData.compradores_dia },
+      };
+      const res = await fetch("/api/analyze", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          messages: [{role:"user", content: "Analise criticamente o sortimento construído até agora para o quiosque Loop (9m², Shopping Nova América, Rio de Janeiro). Dados:\n" + JSON.stringify(sortimentSummary, null, 2) + "\n\nDê: 1) Observações gerais (2-3 frases), 2) Pontos fortes (2-3), 3) Pontos fracos/riscos (2-3), 4) Sugestões concretas de próximos passos (3-4 ações). Seja direto e prático. Responda em português."}],
+          model: "claude-sonnet-4-20250514", max_tokens: 1000,
+          system: "Você é um consultor de varejo especializado em quiosques de impulso em shopping centers. Analise o sortimento de forma crítica e construtiva."
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.map(c => c.text).join("") || data.error || "Erro na análise";
+      setAiInsight(text);
+    } catch (e) { setAiInsight("Erro: " + e.message); }
+    setAiInsightLoading(false);
+  }, [purchaseLog, rejectedLog, idealSlots, funnelData]);
 
   const filtered = useMemo(() => {
     let f = [...skus];
