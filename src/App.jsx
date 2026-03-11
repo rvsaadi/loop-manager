@@ -31,6 +31,42 @@ export default function LoopApp() {
   });
   const [editIdx, setEditIdx] = useState(null);
   const [prefillProduct, setPrefillProduct] = useState(null);
+  const [aiInsight, setAiInsight] = useState("");
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  
+  const generateAiInsight = useCallback(async () => {
+    if (purchaseLog.length === 0) return;
+    setAiInsightLoading(true);
+    try {
+      const sortimentSummary = {
+        total_skus: purchaseLog.length,
+        categorias: [...new Set(purchaseLog.map(p => p.categoria))],
+        pm: (purchaseLog.reduce((a,p) => a + (Number(p.pv)||0), 0) / purchaseLog.length).toFixed(0),
+        margem_media: (purchaseLog.reduce((a,p) => a + (Number(p.margem)||0), 0) / purchaseLog.length).toFixed(0) + "%",
+        investimento: purchaseLog.reduce((a,p) => a + (Number(p.custo)||0)*(Number(p.qtd)||0), 0),
+        receita_estimada: purchaseLog.reduce((a,p) => a + (Number(p.receitaMes)||0), 0),
+        lucro_estimado: purchaseLog.reduce((a,p) => a + (Number(p.lucroMes)||0), 0),
+        pct_sub20: ((purchaseLog.filter(p => (Number(p.pv)||0) <= 20).length / purchaseLog.length) * 100).toFixed(0) + "%",
+        slots_preenchidos: idealSlots.filter(s => s.matched).length,
+        slots_total: idealSlots.filter(s => !s.isNew).length,
+        produtos: purchaseLog.map(p => ({ nome: p.nome, cat: p.categoria, pv: p.pv, margem: p.margem, score: p.score, rec: p.rec, demanda: p.demanda })),
+        rejeitados: rejectedLog.length,
+        funil: { sr: funnelData.sr, conv: funnelData.conv, pa: funnelData.pa, receita_mes: funnelData.receita_mes, compradores_dia: funnelData.compradores_dia },
+      };
+      const res = await fetch("/api/analyze", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          messages: [{role:"user", content: "Analise criticamente o sortimento construído até agora para o quiosque Loop (9m², Shopping Nova América, Rio de Janeiro). Dados:\n" + JSON.stringify(sortimentSummary, null, 2) + "\n\nDê: 1) Observações gerais (2-3 frases), 2) Pontos fortes (2-3), 3) Pontos fracos/riscos (2-3), 4) Sugestões concretas de próximos passos (3-4 ações). Seja direto e prático. Responda em português."}],
+          model: "claude-sonnet-4-20250514", max_tokens: 1000,
+          system: "Você é um consultor de varejo especializado em quiosques de impulso em shopping centers. Analise o sortimento de forma crítica e construtiva."
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.map(c => c.text).join("") || data.error || "Erro na análise";
+      setAiInsight(text);
+    } catch (e) { setAiInsight("Erro: " + e.message); }
+    setAiInsightLoading(false);
+  }, [purchaseLog, rejectedLog, idealSlots, funnelData]);
   const [rejectedLog, setRejectedLog] = useState(() => {
     try { return JSON.parse(localStorage.getItem("loop_rejected") || sessionStorage.getItem("loop_rejected") || "[]"); } catch { return []; }
   });
@@ -317,21 +353,42 @@ export default function LoopApp() {
               <KPICard label="SKUs" value={totals.skus} color="#6C5CE7" emoji="📦" sub={catStats.length+" categorias"} />
             </div>
             <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:20}}>
-              <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>📊 Performance por Categoria (base)</div>
+              <div style={{fontSize:16, fontWeight:800, marginBottom:12}}>📊 Performance por Categoria</div>
+              <div style={{fontSize:11, color:"#888", marginBottom:12}}>Dados do sortimento construído (comprado) + slots pendentes do ideal. As diferenças entre taxas base e observadas refletem o sortimento até o momento.</div>
               <div style={{overflowX:"auto"}}><table style={{width:"100%", borderCollapse:"collapse", fontSize:13}}>
                 <thead><tr style={{borderBottom:"2px solid #eee"}}>
                   <th style={{textAlign:"left", padding:"8px 12px", color:"#888"}}>Categoria</th>
-                  <th style={{textAlign:"center", padding:"8px 6px", color:"#888"}}>SKUs</th>
-                  <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Receita</th>
+                  <th style={{textAlign:"center", padding:"8px 6px", color:"#888"}}>Comprados</th>
+                  <th style={{textAlign:"center", padding:"8px 6px", color:"#888"}}>Ideal</th>
+                  <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Receita Est.</th>
+                  <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Lucro Est.</th>
                   <th style={{textAlign:"right", padding:"8px 6px", color:"#888"}}>Score</th>
                 </tr></thead><tbody>
-                  {catStats.sort((a,b) => b.receita - a.receita).map(cat => (
-                    <tr key={cat.cat} style={{borderBottom:"1px solid #f5f5f5", cursor:"pointer"}} onClick={() => { setCatFilter(cat.cat); setTab("catalogo"); }}>
-                      <td style={{padding:"10px 12px", fontWeight:600}}>{CAT_EMOJI[cat.cat]} {cat.cat}</td>
-                      <td style={{textAlign:"center"}}>{cat.count}</td>
-                      <td style={{textAlign:"right", color:"#0984e3"}}>{fmt(cat.receita)}</td>
-                      <td style={{textAlign:"right"}}>{(cat.score||0).toFixed(2)}</td>
-                    </tr>))}
+                  {(() => {
+                    const catData = {};
+                    idealSlots.filter(s => !s.isNew).forEach(s => {
+                      if (!catData[s.c]) catData[s.c] = {total:0, bought:0, receita:0, lucro:0, scores:[]};
+                      catData[s.c].total++;
+                      if (s.matched) catData[s.c].bought++;
+                    });
+                    purchaseLog.forEach(p => {
+                      const c = p.categoria||"?";
+                      if (!catData[c]) catData[c] = {total:0, bought:0, receita:0, lucro:0, scores:[]};
+                      catData[c].receita += Number(p.receitaMes)||0;
+                      catData[c].lucro += Number(p.lucroMes)||0;
+                      catData[c].scores.push(Number(p.score)||0);
+                    });
+                    return Object.entries(catData).sort((a,b) => b[1].receita - a[1].receita).map(([cat, d]) => (
+                      <tr key={cat} style={{borderBottom:"1px solid #f5f5f5", cursor:"pointer"}} onClick={() => { setCatFilter(cat); setTab("catalogo"); }}>
+                        <td style={{padding:"10px 12px", fontWeight:600}}>{CAT_EMOJI[cat]} {cat}</td>
+                        <td style={{textAlign:"center", color: d.bought > 0 ? "#00b894" : "#ccc"}}>{d.bought}</td>
+                        <td style={{textAlign:"center", color:"#888"}}>{d.total}</td>
+                        <td style={{textAlign:"right", color:"#0984e3"}}>{fmt(d.receita)}</td>
+                        <td style={{textAlign:"right", color:"#00b894"}}>{fmt(d.lucro)}</td>
+                        <td style={{textAlign:"right"}}>{d.scores.length > 0 ? (d.scores.reduce((a,v)=>a+v,0)/d.scores.length).toFixed(2) : "—"}</td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody></table></div>
             </div>
           </div>
@@ -358,7 +415,7 @@ export default function LoopApp() {
               </div>
               <CatBar cats={catStats} selected={catFilter} onSelect={setCatFilter} />
               <div style={{display:"flex", gap:8, fontSize:12, color:"#888"}}>
-                <span style={{fontWeight:600}}>{filtered.length} produtos</span>
+                <span style={{fontWeight:600}}>{catalogWithApproved.length} produtos</span>
                 <span>· Ordenar:</span>
                 {[["sc","Score"],["pv","Preço"],["lu","Lucro"],["dm","Demanda"],["mg","Margem"]].map(([k,l]) => (
                   <button key={k} onClick={() => handleSort(k)} style={{
@@ -379,11 +436,11 @@ export default function LoopApp() {
             </div>
 
             <div style={{maxHeight:"60vh", overflowY:"auto"}}>
-              {filtered.map(s => (
+              {catalogWithApproved.map(s => (
                 <ProductRow key={s.i} sku={s} expanded={expanded===s.i} onToggle={() => setExpanded(expanded===s.i?null:s.i)}
-                  onOverride={(id,field,val) => setSkuOverrides(o => ({...o, [id]: {...(o[id]||{}), [field]:val}}))} />
+                  readOnly={true} />
               ))}
-              {filtered.length === 0 && <div style={{textAlign:"center", padding:40, color:"#888"}}>Nenhum produto encontrado 😔</div>}
+              {catalogWithApproved.length === 0 && <div style={{textAlign:"center", padding:40, color:"#888"}}>Nenhum produto encontrado 😔</div>}
             </div>
           </div>
         )}
@@ -650,7 +707,8 @@ export default function LoopApp() {
                               }} style={{
                                 background:"none", border:"none", fontSize:14, cursor:"pointer", color:"#d63031", padding:0
                               }} title="Mover para rejeitados">🗑️</button>
-                            </div>
+                            
+                          <button onClick={() => setRejectedLog(prev => prev.filter((_,j) => j !== idx))} style={{background:"none", border:"1px solid #d6303130", borderRadius:6, padding:"4px 8px", cursor:"pointer", fontSize:11, color:"#d63031"}} title="Excluir definitivamente">🗑️ Excluir</button></div>
                           </div>
                         ))}
                       </div>
@@ -838,6 +896,23 @@ export default function LoopApp() {
                   </tr>))}
                 </tbody></table>
               </div>)}
+            {/* AI ANALYSIS */}
+              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+                  <div style={{fontSize:16, fontWeight:800}}>🤖 Análise AI do Sortimento</div>
+                  <button onClick={generateAiInsight} disabled={aiInsightLoading || ap.length === 0}
+                    style={{padding:"8px 16px", borderRadius:8, border:"none", background: aiInsightLoading ? "#ddd" : "linear-gradient(135deg, #6C5CE7, #E84393)", color:"white", fontWeight:700, cursor: aiInsightLoading ? "wait" : "pointer", fontSize:12}}>
+                    {aiInsightLoading ? "⏳ Analisando..." : "🔄 Gerar Análise"}
+                  </button>
+                </div>
+                {aiInsight ? (
+                  <div style={{fontSize:13, lineHeight:1.7, whiteSpace:"pre-wrap", color:"#333"}}>{aiInsight}</div>
+                ) : (
+                  <div style={{textAlign:"center", padding:16, color:"#aaa", fontSize:13}}>
+                    Clique "Gerar Análise" para receber observações, críticas e sugestões da AI sobre o sortimento construído.
+                  </div>
+                )}
+              </div>
             </div>)}
           </div>);
         })()}

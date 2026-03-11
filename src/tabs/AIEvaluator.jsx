@@ -24,6 +24,8 @@ export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idea
   const [manualDims, setManualDims] = useState({l:"", w:"", h:""});
   const [isKit, setIsKit] = useState(false);
   const [lastAction, setLastAction] = useState(null);
+  const [editedNome, setEditedNome] = useState("");
+  const [manualSku, setManualSku] = useState("");
   const [manualFornecedor, setManualFornecedor] = useState("");
 
   const [supplierInput, setSupplierInput] = useState("");
@@ -87,7 +89,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
   const buildLogItem = () => {
     if (!aiResult || !scoreResult) return null;
     return {
-      nome: aiResult.nome || "Produto",
+      nome: editedNome || aiResult.nome || "Produto",
       categoria: manualCat || aiResult.categoria || "",
       linha: activePv <= 20 ? "Entrada" : activePv <= 50 ? "Base" : "Premium",
       fornecedor: manualFornecedor || supplierInput || "",
@@ -245,7 +247,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
       let parsed;
       try { parsed = JSON.parse(clean); } catch(e) { throw new Error("JSON inválido na resposta: " + clean.slice(0,300)); }
 
-      setAiResult(parsed);
+      setAiResult(parsed); setEditedNome(""); setManualSku("");
       setManualPv(parsed.preco_sugerido || "");
       setManualCat(parsed.categoria || "");
       if (parsed.dimensoes) {
@@ -336,7 +338,10 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:16}}>
                     <span style={{fontSize:28}}>{CAT_EMOJI[aiResult.categoria] || "📦"}</span>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:18, fontWeight:800}}>{aiResult.nome}</div>
+                      <div style={{display:"flex", alignItems:"center", gap:6}}>
+                        <input value={editedNome || aiResult.nome} onChange={e => setEditedNome(e.target.value)} style={{fontSize:18, fontWeight:800, border:"none", borderBottom:"2px solid #eee", background:"transparent", padding:"2px 4px", fontFamily:"inherit", width:"100%"}} />
+                        <span style={{fontSize:10, color:"#aaa"}}>✏️</span>
+                      </div>
                       <div style={{fontSize:13, color:"#888"}}>{aiResult.descricao}</div>
                     </div>
                     <div style={{
@@ -630,7 +635,13 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     border: `2px solid ${aiResult.sku_ideal !== "NENHUM" ? "#00b89440" : "#fdcb6e40"}`
                   }}>
                     <div style={{fontWeight:700, fontSize:14, marginBottom:4}}>
-                      {aiResult.sku_ideal !== "NENHUM" ? "🎯" : "⚠️"} Sortimento Ideal: {aiResult.sku_ideal}
+                      {aiResult.sku_ideal !== "NENHUM" ? "🎯" : "⚠️"} SKU: 
+                      <select value={manualSku || aiResult.sku_ideal || ""} onChange={e => setManualSku(e.target.value)} style={{fontSize:12, padding:"2px 6px", borderRadius:4, border:"1px solid #ddd", marginLeft:4}}>
+                        <option value={aiResult.sku_ideal || ""}>{aiResult.sku_ideal || "Auto"}</option>
+                        {idealSlots && idealSlots.filter(s => !s.matched && s.c === (manualCat||aiResult?.categoria)).map(s => (
+                          <option key={s.sku||s.id} value={s.sku||"SKU"+String(s.id).padStart(3,"0")}>{s.sku||"SKU"+String(s.id).padStart(3,"0")} - {s.n} (R${s.pv})</option>
+                        ))}
+                      </select>
                     </div>
                     <div style={{fontSize:13, color:"#555"}}>{aiResult.sku_ideal_motivo}</div>
                     {aiResult.sku_ideal === "NENHUM" && (
@@ -655,7 +666,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
                 {!lastAction && <div style={{display:"flex",gap:8,marginTop:12}}>
                   {(!manualCusto||!manualQtd||!manualFornecedor)?<div style={{flex:1,padding:12,background:"#fdcb6e20",border:"2px solid #fdcb6e40",borderRadius:10,textAlign:"center",fontSize:12,color:"#888"}}>⚠️ Preencha Custo, Qtd e Fornecedor para comprar</div>
-                  :<button onClick={()=>{setLastAction("aprovado");const item=buildLogItem();if(item&&onApprove)onApprove({...item,sku_ideal:aiResult.sku_ideal,sku_ideal_motivo:aiResult.sku_ideal_motivo,image:imagePreview,isKit});}} style={{flex:1,padding:12,background:"#00b894",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>✅ COMPRAR</button>}
+                  :<button onClick={()=>{setLastAction("aprovado");const item=buildLogItem();if(item&&onApprove)onApprove({...item,sku_ideal:manualSku||aiResult.sku_ideal,sku_ideal_motivo:aiResult.sku_ideal_motivo,image:imagePreview,isKit});}} style={{flex:1,padding:12,background:"#00b894",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>✅ COMPRAR</button>}
                   <button onClick={()=>{setLastAction("rejeitado");const item=buildLogItem();if(onReject)onReject(item||{nome:aiResult.nome,categoria:manualCat,pv:Number(manualPv),veredicto:aiResult.veredicto,fornecedor:manualFornecedor});}} style={{flex:1,padding:12,background:"#d63031",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>❌ REJEITAR</button>
                 </div>}
                 {lastAction && (

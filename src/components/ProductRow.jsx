@@ -4,7 +4,7 @@ import { AUX } from "../data/aux.js";
 import { RecBadge } from "./RecBadge.jsx";
 import { ScoreBar } from "./ScoreBar.jsx";
 
-export function ProductRow({ sku, expanded, onToggle, onOverride }) {
+export function ProductRow({ sku, expanded, onToggle, onOverride, readOnly }) {
   const emoji = CAT_EMOJI[sku.c] || "📦";
   return (
     <div style={{
@@ -22,7 +22,7 @@ export function ProductRow({ sku, expanded, onToggle, onOverride }) {
           <div style={{fontSize:11, color:"#888"}}>{sku.c} · {sku.li} · {sku.f}</div>
         </div>
         <div style={{textAlign:"right"}} onClick={e => e.stopPropagation()}>
-          <input type="number" value={sku.pv} onChange={e => onOverride(sku.i, "pv", Number(e.target.value))}
+          <input type="number" disabled={readOnly} value={sku.pv} onChange={e => onOverride(sku.i, "pv", Number(e.target.value))}
             style={{width:60, textAlign:"right", fontWeight:700, fontSize:14, border:"1px solid #eee", borderRadius:6, padding:"3px 5px", fontFamily:"inherit", background:"#f8f9fa"}} />
         </div>
         <div style={{textAlign:"right", fontSize:12, color: sku.mg>=70?"#00b894":sku.mg>=40?"#fdcb6e":"#d63031", fontWeight:600}}>{typeof sku.mg==="number"?sku.mg.toFixed(0):sku.mg}%</div>
