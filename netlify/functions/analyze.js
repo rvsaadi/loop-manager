@@ -1,4 +1,4 @@
-// Netlify serverless function — proxy for Claude API
+// Netlify serverless function - proxy for Claude API
 // Avoids CORS issues when calling from browser
 // v2: Added tools support (web_search) for market research
 
@@ -12,7 +12,7 @@ export default async (req) => {
     const body = await req.json();
 
     // Get API key from environment variable
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = Netlify.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "API key not configured. Set ANTHROPIC_API_KEY in Netlify environment variables." }), {
         status: 500,
@@ -20,7 +20,7 @@ export default async (req) => {
       });
     }
 
-    // Build request body — pass through tools if provided
+    // Build request body - pass through tools if provided
     const requestBody = {
       model: body.model || "claude-sonnet-4-20250514",
       max_tokens: body.max_tokens || 1500,
@@ -39,7 +39,7 @@ export default async (req) => {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2025-03-05"
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify(requestBody)
     });
@@ -58,3 +58,8 @@ export default async (req) => {
     });
   }
 };
+
+export const config = {
+  path: "/api/analyze"
+};
+
