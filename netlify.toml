@@ -5,7 +5,15 @@
 [functions]
   directory = "netlify/functions"
 
+# API proxy to Netlify Functions - MUST be before the catch-all
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA catch-all - sends all other routes to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
