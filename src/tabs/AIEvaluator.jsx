@@ -224,6 +224,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1500,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
           system: buildSystemPrompt(skus, idealSlots),
           messages: [{
             role: "user",
