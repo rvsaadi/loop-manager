@@ -474,14 +474,13 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
               )}
 
-              )}
             </div>
           </div>
 
           {/* INPUTS + SCORE — side by side */}
           {scoreResult && aiResult && (
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start"}}>
-              {/* Left column: Manual Inputs + Estratégia de Preço */}
+              {/* Left: Manual Inputs + Estratégia de Preço */}
               <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🎛️ Ajustes Manuais</div>
                 <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
@@ -518,7 +517,6 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   </div>}
                 </div>
                 <div style={{fontSize:11, color:"#888"}}>Linha: <b>{Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}</b></div>
-
                 {/* Estratégia de Preço compacta */}
                 {scoreResult.pOtimo && <div style={{marginTop:10, padding:10, borderRadius:10, background:"#f0f7ff", border:"1px solid #0984e320"}}>
                   <div style={{fontSize:12, fontWeight:700, marginBottom:6}}>💰 Estratégia de Preço</div>
@@ -543,7 +541,8 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>}
               </div>
 
-              {/* Right column: Score breakdown */}
+              {/* Right: Score breakdown */}
+              {/* Left: Score breakdown */}
               <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
                   <div style={{fontSize:16, fontWeight:800}}>📊 Score Loop v11</div>
@@ -628,7 +627,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
             </div>
           )}
 
-          {/* Observations + Actions — full width below */}
+          {/* Observations — full width below */}
           {scoreResult && aiResult && (
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start"}}>
                 {/* Canibalizacao */}
@@ -701,8 +700,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   </div>
                 )}
 
-                {/* Veredicto + Actions - span full width */}
-                <div style={{gridColumn:"1 / -1"}}>
+                {/* Veredicto full */}
                 <div style={{
                   background: aiResult.veredicto?.startsWith("COMPRAR") ? "#00b89415" :
                               aiResult.veredicto?.startsWith("REJEITAR") ? "#d6303115" : "#fdcb6e15",
@@ -737,8 +735,8 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     </div>
                   </div>
                 )}
-                </div>
 
+                {/* Supplier + Actions */}
                 {/* AI Follow-up Chat */}
                 <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", gridColumn:"1 / -1"}}>
                   <div style={{fontSize:14, fontWeight:800, marginBottom:12, display:"flex", alignItems:"center", gap:8}}>
@@ -795,10 +793,12 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   )}
                 </div>
 
-            </div>
+              </div>
           )}
         </div>
       )}
     </div>
   );
 }
+
+/* ===== MAIN APP ===== */
