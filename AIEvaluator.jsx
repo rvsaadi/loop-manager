@@ -478,10 +478,10 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
             </div>
           </div>
 
-          {/* INPUTS + SCORE side by side */}
+          {/* INPUTS + SCORE — side by side */}
           {scoreResult && aiResult && (
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start"}}>
-              {/* Left: Manual Inputs */}
+              {/* Left column: Manual Inputs + Estratégia de Preço */}
               <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🎛️ Ajustes Manuais</div>
                 <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
@@ -517,33 +517,33 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     ))}
                   </div>}
                 </div>
-                <div style={{fontSize:11, color:"#888", marginTop:4}}>Linha: <b>{Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}</b></div>
+                <div style={{fontSize:11, color:"#888"}}>Linha: <b>{Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}</b></div>
 
-                {/* Estratégia de Preço - compact inside inputs */}
-                {scoreResult.pOtimo && <div style={{marginTop:12, padding:10, borderRadius:10, background:"#f0f7ff", border:"1px solid #0984e320"}}>
+                {/* Estratégia de Preço compacta */}
+                {scoreResult.pOtimo && <div style={{marginTop:10, padding:10, borderRadius:10, background:"#f0f7ff", border:"1px solid #0984e320"}}>
                   <div style={{fontSize:12, fontWeight:700, marginBottom:6}}>💰 Estratégia de Preço</div>
                   <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
                     <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#e8f5e920", border:"1px solid #00b89430"}}>
-                      <div style={{fontSize:9, color:"#888"}}>Chamariz</div>
-                      <div style={{fontSize:15, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
+                      <div style={{fontSize:9, color:"#888"}}>🎯 Chamariz</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
                       <div style={{fontSize:8, color:"#888"}}>{scoreResult.chamarizDemanda}pcs · R${scoreResult.chamarizLucro}/m</div>
                     </div>
                     <div style={{textAlign:"center", padding:6, borderRadius:6, background:Number(manualPv)===scoreResult.pOtimo?"#6C5CE720":"#fff", border:"1px solid #6C5CE730"}}>
-                      <div style={{fontSize:9, color:"#888"}}>Max Lucro</div>
-                      <div style={{fontSize:15, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                      <div style={{fontSize:9, color:"#888"}}>💎 Max Lucro</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
                       <div style={{fontSize:8, color:"#888"}}>{scoreResult.optDemanda}pcs · R${scoreResult.optLucro}/m</div>
                     </div>
-                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#fff", border:"1px solid #eee"}}>
-                      <div style={{fontSize:9, color:"#888"}}>Atual</div>
-                      <div style={{fontSize:15, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#fff8e1", border:"1px solid #f39c1230"}}>
+                      <div style={{fontSize:9, color:"#888"}}>🏷️ Atual</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
                       <div style={{fontSize:8, color:"#888"}}>{scoreResult.demanda}pcs · R${scoreResult.lucroMes}/m</div>
                     </div>
                   </div>
-                  {scoreResult.uplift > 5 && <div style={{fontSize:10, color:"#00b894", marginTop:4, fontWeight:600}}>▲ +{scoreResult.uplift}% lucro se usar R${scoreResult.pOtimo}</div>}
+                  {scoreResult.uplift > 5 && <div style={{fontSize:10, color:"#00b894", marginTop:4, fontWeight:600}}>▲ +{scoreResult.uplift}% lucro possível com R${scoreResult.pOtimo}</div>}
                 </div>}
               </div>
 
-              {/* Right: Score breakdown */}
+              {/* Right column: Score breakdown */}
               <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
                   <div style={{fontSize:16, fontWeight:800}}>📊 Score Loop v11</div>
@@ -628,9 +628,9 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
             </div>
           )}
 
-          {/* Observations + Actions - full width below */}
+          {/* Observations + Actions — full width below */}
           {scoreResult && aiResult && (
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start"}}>
                 {/* Canibalizacao */}
                 <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                   <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>🎯 Canibalização</div>
@@ -677,7 +677,6 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
 
                 
                 {/* SKU Ideal Match */}
-                <div style={{gridColumn:"1 / -1"}}>
                 {aiResult.sku_ideal && (
                   <div style={{
                     padding:12, borderRadius:12, marginBottom:12,
@@ -701,10 +700,9 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     )}
                   </div>
                 )}
-                </div>
 
-                {/* Veredicto + Buttons - full width */}
-                <div style={{gridColumn:"1 / -1", display:"flex", flexDirection:"column", gap:10}}>
+                {/* Veredicto + Actions - span full width */}
+                <div style={{gridColumn:"1 / -1"}}>
                 <div style={{
                   background: aiResult.veredicto?.startsWith("COMPRAR") ? "#00b89415" :
                               aiResult.veredicto?.startsWith("REJEITAR") ? "#d6303115" : "#fdcb6e15",
