@@ -1,6 +1,5 @@
 // Netlify serverless function - proxy for Claude API
 // Avoids CORS issues when calling from browser
-// v2: Added tools support (web_search) for market research
 
 export default async (req) => {
   // Only accept POST
@@ -10,27 +9,14 @@ export default async (req) => {
 
   try {
     const body = await req.json();
-
+    
     // Get API key from environment variable
-    const apiKey = Netlify.env.get("ANTHROPIC_API_KEY");
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "API key not configured. Set ANTHROPIC_API_KEY in Netlify environment variables." }), {
         status: 500,
         headers: { "Content-Type": "application/json" }
       });
-    }
-
-    // Build request body - pass through tools if provided
-    const requestBody = {
-      model: body.model || "claude-sonnet-4-20250514",
-      max_tokens: body.max_tokens || 1500,
-      system: body.system || "",
-      messages: body.messages || []
-    };
-
-    // Add tools (web_search) if provided by frontend
-    if (body.tools && Array.isArray(body.tools)) {
-      requestBody.tools = body.tools;
     }
 
     // Forward request to Claude API
@@ -41,16 +27,20 @@ export default async (req) => {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01"
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: body.model || "claude-sonnet-4-20250514",
+        max_tokens: body.max_tokens || 1500,
+        system: body.system || "",
+        messages: body.messages || []
+      })
     });
 
     const data = await response.json();
-
+    
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: { "Content-Type": "application/json" }
     });
-
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
@@ -62,4 +52,3 @@ export default async (req) => {
 export const config = {
   path: "/api/analyze"
 };
-
