@@ -474,58 +474,74 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
               )}
 
-              {/* Manual inputs - always visible after AI result */}
-              {aiResult && (
-                <div style={{background:"white", borderRadius:16, padding:20, marginTop:12, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-                  <div style={{fontSize:14, fontWeight:700, marginBottom:12}}>🎛️ Ajustes Manuais (o Score recalcula em tempo real)</div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12}}>
-                    <Field label="Preço de Venda" value={manualPv} onChange={setManualPv} type="number" prefix="R$" error={approveAttempted && (!manualPv || Number(manualPv) <= 0)} />
-                    <Field label="Custo Unitário (R$)" value={manualCusto} onChange={setManualCusto} type="number" prefix="R$" placeholder="Ex: 3.50" error={approveAttempted && (!manualCusto || Number(manualCusto) <= 0)} />
-                    <Field label="Qtd Comprada" value={manualQtd} onChange={setManualQtd} type="number" suffix="un" placeholder="Ex: 100" error={approveAttempted && (!manualQtd || Number(manualQtd) <= 0)} />
-                  </div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12}}>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Categoria</label>
-                      <select value={manualCat} onChange={e => setManualCat(e.target.value)}
-                        style={{padding:"10px 12px", borderRadius:10, border:"2px solid #eee", fontSize:14, fontFamily:"inherit"}}>
-                        <option value="">Selecionar...</option>
-                        {ALL_CATS.map(c => <option key={c} value={c}>{CAT_EMOJI[c]} {c}</option>)}
-                      </select>
-                    </div>
-                    <Field label="Comp (cm)" value={manualDims.l} onChange={v => setManualDims(d=>({...d, l:v}))} type="number" />
-                    <Field label="Larg (cm)" value={manualDims.w} onChange={v => setManualDims(d=>({...d, w:v}))} type="number" />
-                    <Field label="Alt (cm)" value={manualDims.h} onChange={v => setManualDims(d=>({...d, h:v}))} type="number" />
-
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:12}}>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Fornecedor *</label>
-                      <input value={manualFornecedor} onChange={e=>{setManualFornecedor(e.target.value);setSupplierInput(e.target.value);}}
-                        placeholder="Digite fornecedor" style={{padding:"10px 12px", borderRadius:10, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:14, fontFamily:"inherit"}} />
-                      {suppliers.length > 0 && <div style={{display:"flex", flexWrap:"wrap", gap:4, marginTop:4}}>
-                        {suppliers.slice(0,8).map(s => (
-                          <button key={s} type="button" onClick={() => {setManualFornecedor(s);setSupplierInput(s);}}
-                            style={{padding:"3px 10px", borderRadius:20, border: manualFornecedor===s ? "2px solid #6C5CE7" : "1px solid #ddd", 
-                            background: manualFornecedor===s ? "#6C5CE720" : "#f8f9fa", fontSize:11, cursor:"pointer", fontFamily:"inherit",
-                            color: manualFornecedor===s ? "#6C5CE7" : "#666", fontWeight: manualFornecedor===s ? 700 : 400}}>{s}</button>
-                        ))}
-                      </div>}
-                    </div>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Linha (auto)</label>
-                      <div style={{padding:"10px 12px", borderRadius:10, border:"2px solid #eee", fontSize:14, background:"#f8f9fa", color:"#555"}}>
-                        {Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Score result - full width */}
+          {/* INPUTS + SCORE — side by side */}
           {scoreResult && aiResult && (
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:20}}>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start"}}>
+              {/* Left: Manual Inputs + Estratégia de Preço */}
+              <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🎛️ Ajustes Manuais</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="Preço de Venda" value={manualPv} onChange={setManualPv} type="number" prefix="R$" error={approveAttempted && (!manualPv || Number(manualPv) <= 0)} />
+                  <Field label="Custo (R$)" value={manualCusto} onChange={setManualCusto} type="number" prefix="R$" placeholder="3.50" error={approveAttempted && (!manualCusto || Number(manualCusto) <= 0)} />
+                </div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="Qtd Comprada" value={manualQtd} onChange={setManualQtd} type="number" suffix="un" placeholder="100" error={approveAttempted && (!manualQtd || Number(manualQtd) <= 0)} />
+                  <div style={{display:"flex", flexDirection:"column", gap:3}}>
+                    <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Categoria</label>
+                    <select value={manualCat} onChange={e => setManualCat(e.target.value)}
+                      style={{padding:"8px 10px", borderRadius:8, border:"2px solid #eee", fontSize:13, fontFamily:"inherit"}}>
+                      <option value="">Selecionar...</option>
+                      {ALL_CATS.map(c => <option key={c} value={c}>{CAT_EMOJI[c]} {c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="C (cm)" value={manualDims.l} onChange={v => setManualDims(d=>({...d, l:v}))} type="number" />
+                  <Field label="L (cm)" value={manualDims.w} onChange={v => setManualDims(d=>({...d, w:v}))} type="number" />
+                  <Field label="A (cm)" value={manualDims.h} onChange={v => setManualDims(d=>({...d, h:v}))} type="number" />
+                </div>
+                <div style={{marginBottom:6}}>
+                  <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Fornecedor *</label>
+                  <input value={manualFornecedor} onChange={e=>{setManualFornecedor(e.target.value);setSupplierInput(e.target.value);}}
+                    placeholder="Fornecedor" style={{width:"100%", padding:"8px 10px", borderRadius:8, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box"}} />
+                  {suppliers.length > 0 && <div style={{display:"flex", flexWrap:"wrap", gap:3, marginTop:4}}>
+                    {suppliers.slice(0,6).map(s => (
+                      <button key={s} type="button" onClick={() => {setManualFornecedor(s);setSupplierInput(s);}}
+                        style={{padding:"2px 8px", borderRadius:16, border: manualFornecedor===s ? "2px solid #6C5CE7" : "1px solid #ddd",
+                        background: manualFornecedor===s ? "#6C5CE720" : "#f8f9fa", fontSize:10, cursor:"pointer",
+                        color: manualFornecedor===s ? "#6C5CE7" : "#666", fontWeight: manualFornecedor===s ? 700 : 400}}>{s}</button>
+                    ))}
+                  </div>}
+                </div>
+                <div style={{fontSize:11, color:"#888"}}>Linha: <b>{Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}</b></div>
+                {/* Estratégia de Preço compacta */}
+                {scoreResult.pOtimo && <div style={{marginTop:10, padding:10, borderRadius:10, background:"#f0f7ff", border:"1px solid #0984e320"}}>
+                  <div style={{fontSize:12, fontWeight:700, marginBottom:6}}>💰 Estratégia de Preço</div>
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#e8f5e920", border:"1px solid #00b89430"}}>
+                      <div style={{fontSize:9, color:"#888"}}>🎯 Chamariz</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.chamarizDemanda}pcs · R${scoreResult.chamarizLucro}/m</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:Number(manualPv)===scoreResult.pOtimo?"#6C5CE720":"#fff", border:"1px solid #6C5CE730"}}>
+                      <div style={{fontSize:9, color:"#888"}}>💎 Max Lucro</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.optDemanda}pcs · R${scoreResult.optLucro}/m</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#fff8e1", border:"1px solid #f39c1230"}}>
+                      <div style={{fontSize:9, color:"#888"}}>🏷️ Atual</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.demanda}pcs · R${scoreResult.lucroMes}/m</div>
+                    </div>
+                  </div>
+                  {scoreResult.uplift > 5 && <div style={{fontSize:10, color:"#00b894", marginTop:4, fontWeight:600}}>▲ +{scoreResult.uplift}% lucro possível com R${scoreResult.pOtimo}</div>}
+                </div>}
+              </div>
+
+              {/* Right: Score breakdown */}
               {/* Left: Score breakdown */}
               <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
@@ -608,8 +624,12 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 )}
               </div>
 
-              {/* Right: AI Insights */}
-              <div style={{display:"flex", flexDirection:"column", gap:12}}>
+            </div>
+          )}
+
+          {/* Observations — full width below */}
+          {scoreResult && aiResult && (
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start"}}>
                 {/* Canibalizacao */}
                 <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                   <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>🎯 Canibalização</div>
@@ -774,7 +794,6 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
 
               </div>
-            </div>
           )}
         </div>
       )}
