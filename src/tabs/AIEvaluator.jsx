@@ -224,7 +224,6 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1500,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
           system: buildSystemPrompt(skus, idealSlots),
           messages: [{
             role: "user",
@@ -443,6 +442,32 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
 
                   {/* Racional de preço */}
                   <div style={{padding:12, borderRadius:12, background:"#f0f7ff", marginBottom:12, fontSize:13}}>
+                {scoreResult && <div style={{background:"#f0f7ff", borderRadius:12, padding:14, marginBottom:12, border:"1px solid #0984e320"}}>
+                  <div style={{fontSize:13, fontWeight:700, marginBottom:8}}>💰 Estratégia de Preço</div>
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, fontSize:12}}>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background:"#e8f5e9"}}>
+                      <div style={{fontSize:10, color:"#888"}}>🎯 Chamariz</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.chamarizDemanda} pcs · R${scoreResult.chamarizLucro}/m</div>
+                      <div style={{fontSize:9, color:"#2e7d32"}}>Margem mín 30% · Max volume</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background: Number(manualPv) === scoreResult.pOtimo ? "#6C5CE720" : "#fff", border: "2px solid #6C5CE730"}}>
+                      <div style={{fontSize:10, color:"#888"}}>💎 Maximiza Lucro</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.optDemanda} pcs · R${scoreResult.optLucro}/m</div>
+                      {scoreResult.lernerPrice && <div style={{fontSize:9, color:"#6C5CE7"}}>Lerner teórico: R${scoreResult.lernerPrice}</div>}
+                    </div>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background:"#fff8e1"}}>
+                      <div style={{fontSize:10, color:"#888"}}>🏷️ Preço Atual</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.demanda} pcs · R${scoreResult.lucroMes}/m</div>
+                      {scoreResult.uplift > 5 && <div style={{fontSize:9, color:"#e17055"}}>Oportunidade: +{scoreResult.uplift}% lucro</div>}
+                      {scoreResult.uplift <= 5 && scoreResult.uplift >= -5 && <div style={{fontSize:9, color:"#00b894"}}>Preço próximo do ótimo</div>}
+                    </div>
+                  </div>
+                  {Number(manualPv) <= scoreResult.chamarizPrice + 2 && <div style={{marginTop:8, fontSize:11, color:"#2e7d32", background:"#e8f5e920", padding:8, borderRadius:6}}>💡 Este preço funciona como <b>chamariz</b> — atrai tráfego e eleva taxa de conversão do quiosque, mesmo que não maximize o lucro unitário. Ideal para itens de entrada.</div>}
+                  {Number(manualPv) > scoreResult.chamarizPrice + 2 && Number(manualPv) < scoreResult.pOtimo - 2 && <div style={{marginTop:8, fontSize:11, color:"#0984e3", background:"#f0f7ff", padding:8, borderRadius:6}}>💡 Preço em <b>zona intermediária</b>. Para maximizar lucro, considere R${scoreResult.pOtimo}. Para maximizar volume/conversão, considere R${scoreResult.chamarizPrice}.</div>}
+                </div>}
                     <div style={{fontWeight:700, color:"#0984e3", marginBottom:4}}>💰 Racional de Preço</div>
                     {aiResult.racional_preco}
                   </div>
@@ -564,8 +589,10 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     <div style={{fontSize:18, fontWeight:800}}>{scoreResult.gmroi.toFixed(2)}x</div>
                   </div>
                   <div style={{padding:10, borderRadius:10, background:"#f9f9f9"}}>
-                    <div style={{fontSize:10, color:"#888"}}>Preço Ótimo (Lerner)</div>
+                    <div style={{fontSize:10, color:"#888"}}>P. Ótimo (max lucro)</div>
                     <div style={{fontSize:18, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                    <div style={{fontSize:9, color:"#888"}}>Lucro: R${scoreResult.optLucro}/m · {scoreResult.optDemanda} pcs</div>
+                    {scoreResult.uplift > 5 && <div style={{fontSize:9, color:"#00b894", fontWeight:700}}>▲ {scoreResult.uplift}% vs preço atual</div>}
                   </div>
                   <div style={{padding:10, borderRadius:10, background:"#f9f9f9"}}>
                     <div style={{fontSize:10, color:"#888"}}>Vol. produto</div>
