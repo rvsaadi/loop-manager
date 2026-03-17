@@ -628,7 +628,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
           )}
 
           {/* Observations — full width below */}
-          {scoreResult && aiResult && (
+          {aiResult && (
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start"}}>
                 {/* Canibalizacao */}
                 <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
