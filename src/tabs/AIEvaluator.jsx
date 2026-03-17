@@ -478,8 +478,8 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
           </div>
 
           {/* INPUTS + SCORE — side by side */}
-          {scoreResult && aiResult && (
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start"}}>
+          {aiResult && (
+            <div style={{display:"grid", gridTemplateColumns: scoreResult ? "1fr 1fr" : "1fr", gap:16, alignItems:"start"}}>
               {/* Left: Manual Inputs + Estratégia de Preço */}
               <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🎛️ Ajustes Manuais</div>
