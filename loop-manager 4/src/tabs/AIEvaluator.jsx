@@ -9,7 +9,7 @@ import { RecBadge } from "../components/RecBadge.jsx";
 import { ScoreBar } from "../components/ScoreBar.jsx";
 import { Field } from "../components/Field.jsx";
 
-export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idealSlots }) {
+export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idealSlots, prefill, onClearPrefill }) {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,8 @@ export default function AIEvaluator({ onApprove, onReject, suppliers, skus, idea
   const [manualDims, setManualDims] = useState({l:"", w:"", h:""});
   const [isKit, setIsKit] = useState(false);
   const [lastAction, setLastAction] = useState(null);
+  const [editedNome, setEditedNome] = useState("");
+  const [manualSku, setManualSku] = useState("");
   const [manualFornecedor, setManualFornecedor] = useState("");
 
   const [supplierInput, setSupplierInput] = useState("");
@@ -87,7 +89,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
   const buildLogItem = () => {
     if (!aiResult || !scoreResult) return null;
     return {
-      nome: aiResult.nome || "Produto",
+      nome: editedNome || aiResult.nome || "Produto",
       categoria: manualCat || aiResult.categoria || "",
       linha: activePv <= 20 ? "Entrada" : activePv <= 50 ? "Base" : "Premium",
       fornecedor: manualFornecedor || supplierInput || "",
@@ -119,6 +121,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
       canibalizacao: aiResult.canibalizacao || "",
       imagePreview: imagePreview,
       timestamp: new Date().toISOString(),
+      _aiResult: aiResult,  // Store for re-evaluation
     };
   };
 
@@ -168,6 +171,26 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
   }, []);
+  // Pre-fill from approved/rejected product (back to evaluation)
+  useEffect(() => {
+    if (!prefill) return;
+    // Restore AI result
+    if (prefill._aiResult) {
+      setAiResult(prefill._aiResult);
+    }
+    // Restore manual fields
+    if (prefill.pv) setManualPv(String(prefill.pv));
+    if (prefill.custo) setManualCusto(String(prefill.custo));
+    if (prefill.qtd) setManualQtd(String(prefill.qtd));
+    if (prefill.categoria) setManualCat(prefill.categoria);
+    if (prefill.fornecedor) { setManualFornecedor(prefill.fornecedor); setSupplierInput(prefill.fornecedor); }
+    if (prefill.dims) setManualDims(prefill.dims);
+    if (prefill.imagePreview || prefill.image) setImagePreview(prefill.imagePreview || prefill.image);
+    setIsKit(prefill.isKit || false);
+    setLastAction(null);
+    if (onClearPrefill) onClearPrefill();
+  }, [prefill]);
+
 
 
   const handleImageUpload = (e) => {
@@ -224,7 +247,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
       let parsed;
       try { parsed = JSON.parse(clean); } catch(e) { throw new Error("JSON inválido na resposta: " + clean.slice(0,300)); }
 
-      setAiResult(parsed);
+      setAiResult(parsed); setEditedNome(""); setManualSku("");
       setManualPv(parsed.preco_sugerido || "");
       setManualCat(parsed.categoria || "");
       if (parsed.dimensoes) {
@@ -315,7 +338,10 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                   <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:16}}>
                     <span style={{fontSize:28}}>{CAT_EMOJI[aiResult.categoria] || "📦"}</span>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:18, fontWeight:800}}>{aiResult.nome}</div>
+                      <div style={{display:"flex", alignItems:"center", gap:6}}>
+                        <input value={editedNome || aiResult.nome} onChange={e => setEditedNome(e.target.value)} style={{fontSize:18, fontWeight:800, border:"none", borderBottom:"2px solid #eee", background:"transparent", padding:"2px 4px", fontFamily:"inherit", width:"100%"}} />
+                        <span style={{fontSize:10, color:"#aaa"}}>✏️</span>
+                      </div>
                       <div style={{fontSize:13, color:"#888"}}>{aiResult.descricao}</div>
                     </div>
                     <div style={{
@@ -416,59 +442,107 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
 
                   {/* Racional de preço */}
                   <div style={{padding:12, borderRadius:12, background:"#f0f7ff", marginBottom:12, fontSize:13}}>
+                {scoreResult && <div style={{background:"#f0f7ff", borderRadius:12, padding:14, marginBottom:12, border:"1px solid #0984e320"}}>
+                  <div style={{fontSize:13, fontWeight:700, marginBottom:8}}>💰 Estratégia de Preço</div>
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, fontSize:12}}>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background:"#e8f5e9"}}>
+                      <div style={{fontSize:10, color:"#888"}}>🎯 Chamariz</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.chamarizDemanda} pcs · R${scoreResult.chamarizLucro}/m</div>
+                      <div style={{fontSize:9, color:"#2e7d32"}}>Margem mín 30% · Max volume</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background: Number(manualPv) === scoreResult.pOtimo ? "#6C5CE720" : "#fff", border: "2px solid #6C5CE730"}}>
+                      <div style={{fontSize:10, color:"#888"}}>💎 Maximiza Lucro</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.optDemanda} pcs · R${scoreResult.optLucro}/m</div>
+                      {scoreResult.lernerPrice && <div style={{fontSize:9, color:"#6C5CE7"}}>Lerner teórico: R${scoreResult.lernerPrice}</div>}
+                    </div>
+                    <div style={{textAlign:"center", padding:8, borderRadius:8, background:"#fff8e1"}}>
+                      <div style={{fontSize:10, color:"#888"}}>🏷️ Preço Atual</div>
+                      <div style={{fontSize:16, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
+                      <div style={{fontSize:9, color:"#888"}}>{scoreResult.demanda} pcs · R${scoreResult.lucroMes}/m</div>
+                      {scoreResult.uplift > 5 && <div style={{fontSize:9, color:"#e17055"}}>Oportunidade: +{scoreResult.uplift}% lucro</div>}
+                      {scoreResult.uplift <= 5 && scoreResult.uplift >= -5 && <div style={{fontSize:9, color:"#00b894"}}>Preço próximo do ótimo</div>}
+                    </div>
+                  </div>
+                  {Number(manualPv) <= scoreResult.chamarizPrice + 2 && <div style={{marginTop:8, fontSize:11, color:"#2e7d32", background:"#e8f5e920", padding:8, borderRadius:6}}>💡 Este preço funciona como <b>chamariz</b> — atrai tráfego e eleva taxa de conversão do quiosque, mesmo que não maximize o lucro unitário. Ideal para itens de entrada.</div>}
+                  {Number(manualPv) > scoreResult.chamarizPrice + 2 && Number(manualPv) < scoreResult.pOtimo - 2 && <div style={{marginTop:8, fontSize:11, color:"#0984e3", background:"#f0f7ff", padding:8, borderRadius:6}}>💡 Preço em <b>zona intermediária</b>. Para maximizar lucro, considere R${scoreResult.pOtimo}. Para maximizar volume/conversão, considere R${scoreResult.chamarizPrice}.</div>}
+                </div>}
                     <div style={{fontWeight:700, color:"#0984e3", marginBottom:4}}>💰 Racional de Preço</div>
                     {aiResult.racional_preco}
                   </div>
                 </div>
               )}
 
-              {/* Manual inputs - always visible after AI result */}
-              {aiResult && (
-                <div style={{background:"white", borderRadius:16, padding:20, marginTop:12, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-                  <div style={{fontSize:14, fontWeight:700, marginBottom:12}}>🎛️ Ajustes Manuais (o Score recalcula em tempo real)</div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12}}>
-                    <Field label="Preço de Venda" value={manualPv} onChange={setManualPv} type="number" prefix="R$" error={approveAttempted && (!manualPv || Number(manualPv) <= 0)} />
-                    <Field label="Custo Unitário (R$)" value={manualCusto} onChange={setManualCusto} type="number" prefix="R$" placeholder="Ex: 3.50" error={approveAttempted && (!manualCusto || Number(manualCusto) <= 0)} />
-                    <Field label="Qtd Comprada" value={manualQtd} onChange={setManualQtd} type="number" suffix="un" placeholder="Ex: 100" error={approveAttempted && (!manualQtd || Number(manualQtd) <= 0)} />
-                  </div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12}}>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Categoria</label>
-                      <select value={manualCat} onChange={e => setManualCat(e.target.value)}
-                        style={{padding:"10px 12px", borderRadius:10, border:"2px solid #eee", fontSize:14, fontFamily:"inherit"}}>
-                        <option value="">Selecionar...</option>
-                        {ALL_CATS.map(c => <option key={c} value={c}>{CAT_EMOJI[c]} {c}</option>)}
-                      </select>
-                    </div>
-                    <Field label="Comp (cm)" value={manualDims.l} onChange={v => setManualDims(d=>({...d, l:v}))} type="number" />
-                    <Field label="Larg (cm)" value={manualDims.w} onChange={v => setManualDims(d=>({...d, w:v}))} type="number" />
-                    <Field label="Alt (cm)" value={manualDims.h} onChange={v => setManualDims(d=>({...d, h:v}))} type="number" />
-
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:12}}>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Fornecedor *</label>
-                      <input list="fornecedores-list" value={manualFornecedor} onChange={e=>setManualFornecedor(e.target.value)}
-                        placeholder="Selecione ou digite novo" style={{padding:"10px 12px", borderRadius:10, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:14, fontFamily:"inherit"}} />
-                      <datalist id="fornecedores-list">{suppliers.map(s=><option key={s} value={s}/>)}</datalist>
-                    </div>
-                    <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                      <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Linha (auto)</label>
-                      <div style={{padding:"10px 12px", borderRadius:10, border:"2px solid #eee", fontSize:14, background:"#f8f9fa", color:"#555"}}>
-                        {Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Score result - full width */}
-          {scoreResult && aiResult && (
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:20}}>
-              {/* Left: Score breakdown */}
-              <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+          {/* INPUTS + SCORE — side by side */}
+          {aiResult && (
+            <div style={{display:"grid", gridTemplateColumns: scoreResult ? "1fr 1fr" : "1fr", gap:16, alignItems:"start"}}>
+              {/* Left: Manual Inputs + Estratégia de Preço */}
+              <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:14, fontWeight:700, marginBottom:10}}>🎛️ Ajustes Manuais</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="Preço de Venda" value={manualPv} onChange={setManualPv} type="number" prefix="R$" error={approveAttempted && (!manualPv || Number(manualPv) <= 0)} />
+                  <Field label="Custo (R$)" value={manualCusto} onChange={setManualCusto} type="number" prefix="R$" placeholder="3.50" error={approveAttempted && (!manualCusto || Number(manualCusto) <= 0)} />
+                </div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="Qtd Comprada" value={manualQtd} onChange={setManualQtd} type="number" suffix="un" placeholder="100" error={approveAttempted && (!manualQtd || Number(manualQtd) <= 0)} />
+                  <div style={{display:"flex", flexDirection:"column", gap:3}}>
+                    <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Categoria</label>
+                    <select value={manualCat} onChange={e => setManualCat(e.target.value)}
+                      style={{padding:"8px 10px", borderRadius:8, border:"2px solid #eee", fontSize:13, fontFamily:"inherit"}}>
+                      <option value="">Selecionar...</option>
+                      {ALL_CATS.map(c => <option key={c} value={c}>{CAT_EMOJI[c]} {c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8}}>
+                  <Field label="C (cm)" value={manualDims.l} onChange={v => setManualDims(d=>({...d, l:v}))} type="number" />
+                  <Field label="L (cm)" value={manualDims.w} onChange={v => setManualDims(d=>({...d, w:v}))} type="number" />
+                  <Field label="A (cm)" value={manualDims.h} onChange={v => setManualDims(d=>({...d, h:v}))} type="number" />
+                </div>
+                <div style={{marginBottom:6}}>
+                  <label style={{fontSize:11, fontWeight:600, color:"#888"}}>Fornecedor *</label>
+                  <input value={manualFornecedor} onChange={e=>{setManualFornecedor(e.target.value);setSupplierInput(e.target.value);}}
+                    placeholder="Fornecedor" style={{width:"100%", padding:"8px 10px", borderRadius:8, border:`2px solid ${!manualFornecedor&&manualCusto?"#e17055":"#eee"}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box"}} />
+                  {suppliers.length > 0 && <div style={{display:"flex", flexWrap:"wrap", gap:3, marginTop:4}}>
+                    {suppliers.slice(0,6).map(s => (
+                      <button key={s} type="button" onClick={() => {setManualFornecedor(s);setSupplierInput(s);}}
+                        style={{padding:"2px 8px", borderRadius:16, border: manualFornecedor===s ? "2px solid #6C5CE7" : "1px solid #ddd",
+                        background: manualFornecedor===s ? "#6C5CE720" : "#f8f9fa", fontSize:10, cursor:"pointer",
+                        color: manualFornecedor===s ? "#6C5CE7" : "#666", fontWeight: manualFornecedor===s ? 700 : 400}}>{s}</button>
+                    ))}
+                  </div>}
+                </div>
+                <div style={{fontSize:11, color:"#888"}}>Linha: <b>{Number(manualPv)<=20?"Entrada":Number(manualPv)<=50?"Base":"Premium"}</b></div>
+                {/* Estratégia de Preço compacta */}
+                {scoreResult.pOtimo && <div style={{marginTop:10, padding:10, borderRadius:10, background:"#f0f7ff", border:"1px solid #0984e320"}}>
+                  <div style={{fontSize:12, fontWeight:700, marginBottom:6}}>💰 Estratégia de Preço</div>
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#e8f5e920", border:"1px solid #00b89430"}}>
+                      <div style={{fontSize:9, color:"#888"}}>🎯 Chamariz</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#2e7d32"}}>R${scoreResult.chamarizPrice}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.chamarizDemanda}pcs · R${scoreResult.chamarizLucro}/m</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:Number(manualPv)===scoreResult.pOtimo?"#6C5CE720":"#fff", border:"1px solid #6C5CE730"}}>
+                      <div style={{fontSize:9, color:"#888"}}>💎 Max Lucro</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.optDemanda}pcs · R${scoreResult.optLucro}/m</div>
+                    </div>
+                    <div style={{textAlign:"center", padding:6, borderRadius:6, background:"#fff8e1", border:"1px solid #f39c1230"}}>
+                      <div style={{fontSize:9, color:"#888"}}>🏷️ Atual</div>
+                      <div style={{fontSize:14, fontWeight:800, color:"#f39c12"}}>R${manualPv || "—"}</div>
+                      <div style={{fontSize:8, color:"#888"}}>{scoreResult.demanda}pcs · R${scoreResult.lucroMes}/m</div>
+                    </div>
+                  </div>
+                  {scoreResult.uplift > 5 && <div style={{fontSize:10, color:"#00b894", marginTop:4, fontWeight:600}}>▲ +{scoreResult.uplift}% lucro possível com R${scoreResult.pOtimo}</div>}
+                </div>}
+              </div>
+
+              {/* Right: Score breakdown — only shows after PV+Custo filled */}
+              {scoreResult && <div style={{background:"white", borderRadius:16, padding:20, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
                   <div style={{fontSize:16, fontWeight:800}}>📊 Score Loop v11</div>
                   <RecBadge rec={scoreResult.rec} />
@@ -530,8 +604,10 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     <div style={{fontSize:18, fontWeight:800}}>{scoreResult.gmroi.toFixed(2)}x</div>
                   </div>
                   <div style={{padding:10, borderRadius:10, background:"#f9f9f9"}}>
-                    <div style={{fontSize:10, color:"#888"}}>Preço Ótimo (Lerner)</div>
+                    <div style={{fontSize:10, color:"#888"}}>P. Ótimo (max lucro)</div>
                     <div style={{fontSize:18, fontWeight:800, color:"#6C5CE7"}}>R${scoreResult.pOtimo}</div>
+                    <div style={{fontSize:9, color:"#888"}}>Lucro: R${scoreResult.optLucro}/m · {scoreResult.optDemanda} pcs</div>
+                    {scoreResult.uplift > 5 && <div style={{fontSize:9, color:"#00b894", fontWeight:700}}>▲ {scoreResult.uplift}% vs preço atual</div>}
                   </div>
                   <div style={{padding:10, borderRadius:10, background:"#f9f9f9"}}>
                     <div style={{fontSize:10, color:"#888"}}>Vol. produto</div>
@@ -545,10 +621,14 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     ⚠️ Margem abaixo de 40% — produto NÃO qualifica para AMPLIAR mesmo com score alto
                   </div>
                 )}
-              </div>
+              </div>}
 
-              {/* Right: AI Insights */}
-              <div style={{display:"flex", flexDirection:"column", gap:12}}>
+            </div>
+          )}
+
+          {/* Observations — full width below */}
+          {scoreResult && aiResult && (
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start"}}>
                 {/* Canibalizacao */}
                 <div style={{background:"white", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                   <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>🎯 Canibalização</div>
@@ -602,7 +682,13 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                     border: `2px solid ${aiResult.sku_ideal !== "NENHUM" ? "#00b89440" : "#fdcb6e40"}`
                   }}>
                     <div style={{fontWeight:700, fontSize:14, marginBottom:4}}>
-                      {aiResult.sku_ideal !== "NENHUM" ? "🎯" : "⚠️"} Sortimento Ideal: {aiResult.sku_ideal}
+                      {aiResult.sku_ideal !== "NENHUM" ? "🎯" : "⚠️"} SKU: 
+                      <select value={manualSku || aiResult.sku_ideal || ""} onChange={e => setManualSku(e.target.value)} style={{fontSize:12, padding:"2px 6px", borderRadius:4, border:"1px solid #ddd", marginLeft:4}}>
+                        <option value={aiResult.sku_ideal || ""}>{aiResult.sku_ideal || "Auto"}</option>
+                        {idealSlots && idealSlots.filter(s => !s.matched && s.c === (manualCat||aiResult?.categoria)).map(s => (
+                          <option key={s.sku||s.id} value={s.sku||"SKU"+String(s.id).padStart(3,"0")}>{s.sku||"SKU"+String(s.id).padStart(3,"0")} - {s.n} (R${s.pv})</option>
+                        ))}
+                      </select>
                     </div>
                     <div style={{fontSize:13, color:"#555"}}>{aiResult.sku_ideal_motivo}</div>
                     {aiResult.sku_ideal === "NENHUM" && (
@@ -627,8 +713,8 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
                 {!lastAction && <div style={{display:"flex",gap:8,marginTop:12}}>
                   {(!manualCusto||!manualQtd||!manualFornecedor)?<div style={{flex:1,padding:12,background:"#fdcb6e20",border:"2px solid #fdcb6e40",borderRadius:10,textAlign:"center",fontSize:12,color:"#888"}}>⚠️ Preencha Custo, Qtd e Fornecedor para comprar</div>
-                  :<button onClick={()=>{const pv=Number(manualPv)||aiResult.preco_sugerido;const linha=pv<=20?"Entrada":pv<=50?"Base":"Premium";setLastAction("aprovado");if(onApprove)onApprove({nome:aiResult.nome,sku_ideal:aiResult.sku_ideal,sku_ideal_motivo:aiResult.sku_ideal_motivo,image:imagePreview,categoria:aiResult.categoria||manualCat,linha,fornecedor:manualFornecedor,pv,custo:Number(manualCusto),margem:scoreResult?.margin,qtd:Number(manualQtd),moq:aiResult.moq||manualQtd,score:scoreResult?.score,rec:scoreResult?.rec,veredicto:aiResult.veredicto,canibalizacao:aiResult.canibalizacao,vm_tip:aiResult.vm_tip,l:Number(manualDims.l)||aiResult?.dimensoes?.l||10,w:Number(manualDims.w)||aiResult?.dimensoes?.w||5,h:Number(manualDims.h)||aiResult?.dimensoes?.h||5,isKit,pi:scoreResult?.pi,gm:scoreResult?.gmroi,cs:scoreResult?.cs,dm:scoreResult?.demand,rv:scoreResult?.revenue,lu:scoreResult?.profit,preco_otimo:scoreResult?.optPrice});}} style={{flex:1,padding:12,background:"#00b894",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>✅ COMPRAR</button>}
-                  <button onClick={()=>{setLastAction("rejeitado");if(onReject)onReject({nome:aiResult.nome,categoria:aiResult.categoria||manualCat,pv:Number(manualPv)||aiResult.preco_sugerido,veredicto:aiResult.veredicto,fornecedor:manualFornecedor});}} style={{flex:1,padding:12,background:"#d63031",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>❌ REJEITAR</button>
+                  :<button onClick={()=>{setLastAction("aprovado");const item=buildLogItem();if(item&&onApprove)onApprove({...item,sku_ideal:manualSku||aiResult.sku_ideal,sku_ideal_motivo:aiResult.sku_ideal_motivo,image:imagePreview,isKit});}} style={{flex:1,padding:12,background:"#00b894",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>✅ COMPRAR</button>}
+                  <button onClick={()=>{setLastAction("rejeitado");const item=buildLogItem();if(onReject)onReject(item||{nome:aiResult.nome,categoria:manualCat,pv:Number(manualPv),veredicto:aiResult.veredicto,fornecedor:manualFornecedor});}} style={{flex:1,padding:12,background:"#d63031",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>❌ REJEITAR</button>
                 </div>}
                 {lastAction && (
                   <div style={{marginTop:12, padding:16, borderRadius:12, textAlign:"center",
@@ -707,7 +793,6 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
                 </div>
 
               </div>
-            </div>
           )}
         </div>
       )}
