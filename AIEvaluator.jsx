@@ -66,7 +66,7 @@ Cross-sell: ${(aiResult.cross_sell || []).join(", ")}`;
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 1000,
           system: `Você é o consultor analítico da LOOP, quiosque de variedades 9m² no Rio de Janeiro. O operador está avaliando um produto e quer tirar dúvidas. Responda de forma direta, prática e concisa (max 3-4 frases). Use dados quando possível.
 
@@ -222,7 +222,7 @@ SORTIMENTO LOOP: ${skus.length} SKUs em ${[...new Set(skus.map(s=>s.c))].length}
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 1500,
           system: buildSystemPrompt(skus, idealSlots),
           messages: [{
