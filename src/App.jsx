@@ -171,7 +171,7 @@ export default function LoopApp() {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({
           messages: [{role:"user", content: "Analise criticamente o sortimento construído até agora para o quiosque Loop (9m², Shopping Nova América, Rio de Janeiro). Dados:\n" + JSON.stringify(sortimentSummary, null, 2) + "\n\nDê: 1) Observações gerais (2-3 frases), 2) Pontos fortes (2-3), 3) Pontos fracos/riscos (2-3), 4) Sugestões concretas de próximos passos (3-4 ações). Seja direto e prático. Responda em português."}],
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
+          model: "claude-sonnet-4-6", max_tokens: 1000,
           system: "Você é um consultor de varejo especializado em quiosques de impulso em shopping centers. Analise o sortimento de forma crítica e construtiva."
         })
       });
